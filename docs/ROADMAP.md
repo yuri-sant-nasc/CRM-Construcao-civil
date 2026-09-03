@@ -9,6 +9,7 @@ Este roadmap transforma as melhorias do CRM em tarefas independentes. Execute um
 - Toda mudanca de modelo ou relacionamento deve atualizar [DIAGRAMA.md](DIAGRAMA.md).
 - Toda tarefa concluida deve registrar uma migracao, quando aplicavel, e passar por `python manage.py test`.
 - Nao colocar dados reais, senhas ou documentos de clientes no repositorio.
+- Atualizar [MANUAL_USO.md](MANUAL_USO.md) no mesmo pull request de qualquer nova função ou alteração de UI/UX.
 
 ## Ordem de implementacao
 
@@ -280,6 +281,8 @@ As tarefas desta frente devem ser executadas junto das funcionalidades correspon
 **Testes obrigatorios:** pelo menos um cenario real por perfil, medicao de tempo, taxa de conclusao, erros observados e aceite dos fluxos criticos.
 
 **Diagrama:** nao altera entidades; descobertas que mudarem o dominio devem abrir tarefa de modelo e atualizar DIAGRAMA.md.
+
+**Manual:** atualizar [MANUAL_USO.md](MANUAL_USO.md) com o fluxo, telas, permissões e testes de aceite.
 
 ### Qualidade, operacao e seguranca
 

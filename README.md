@@ -75,6 +75,8 @@ O acesso é controlado pelas permissões padrão do Django (`view_oportunidade`,
 
 As próximas entregas estão organizadas, em ordem de prioridade, em [docs/ROADMAP.md](docs/ROADMAP.md). Cada tarefa define seus testes obrigatórios e a atualização de diagrama necessária.
 
+O guia operacional do sistema está em [docs/MANUAL_USO.md](docs/MANUAL_USO.md). Ele deve ser atualizado no mesmo pull request de qualquer nova função ou alteração de UI/UX.
+
 ## Importação e Exportação (CSV e PDF)
 
 Os módulos **Financeiro**, **Orçamentos** e **Materiais** suportam importação de CSV.
