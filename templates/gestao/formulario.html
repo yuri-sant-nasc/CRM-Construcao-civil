@@ -1,0 +1,51 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WPN - {{ titulo }}</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <h1>WPN</h1>
+            <nav>
+                <a href="{% url 'dashboard' %}">Dashboard</a>
+                <a href="{% url 'funcionarios' %}">Funcionários</a>
+                <a href="{% url 'clientes' %}">Clientes</a>
+                <a href="{% url 'faltas' %}">Faltas</a>
+                <a href="{% url 'financeiro' %}">Financeiro</a>
+                <a href="{% url 'orcamentos' %}">Orçamentos</a>
+                <a href="{% url 'materiais' %}">Materiais</a>
+                <a href="{% url 'pontos' %}">Ponto</a>
+            </nav>
+        </aside>
+
+        <main class="content">
+            <header class="topbar">
+                <div>
+                    <p class="eyebrow">Cadastro WPN</p>
+                    <h2>{{ titulo }}</h2>
+                    <p class="page-subtitle">Preencha os dados abaixo para manter as informações da operação atualizadas.</p>
+                </div>
+            </header>
+
+            <div class="form-box">
+                <form method="post">
+                    {% csrf_token %}
+                    {% if form.non_field_errors %}
+                        <div class="form-alert">{{ form.non_field_errors }}</div>
+                    {% endif %}
+                    {{ form.as_p }}
+                    <div class="form-actions">
+                        <button type="submit" class="primary-btn">Salvar cadastro</button>
+                        <a href="javascript:history.back()" class="secondary-btn">Cancelar</a>
+                    </div>
+                </form>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

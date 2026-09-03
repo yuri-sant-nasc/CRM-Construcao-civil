@@ -1,0 +1,188 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WPN - Dashboard</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <h1>WPN</h1>
+            <nav>
+                <a href="{% url 'dashboard' %}" class="active">Dashboard</a>
+                <a href="{% url 'funcionarios' %}">Funcionários</a>
+                <a href="{% url 'clientes' %}">Clientes</a>
+                <a href="{% url 'obras' %}">Obras</a>
+                <a href="{% url 'faltas' %}">Faltas</a>
+                <a href="{% url 'financeiro' %}">Financeiro</a>
+                <a href="{% url 'orcamentos' %}">Orçamentos</a>
+                <a href="{% url 'materiais' %}">Materiais</a>
+                <a href="{% url 'pontos' %}">Ponto</a>
+                <form method="post" action="{% url 'logout' %}" class="logout-form">{% csrf_token %}<button type="submit">Sair</button></form>
+            </nav>
+        </aside>
+
+        <main class="content">
+            <header class="topbar">
+                <div>
+                    <p class="eyebrow">Painel executivo</p>
+                    <h2>Dashboard da Construtora WPN</h2>
+                </div>
+                <form method="get" class="date-filter">
+                    <label>De <input type="date" name="data_inicio" value="{{ data_inicio }}"></label>
+                    <label>Até <input type="date" name="data_fim" value="{{ data_fim }}"></label>
+                    <button type="submit" class="secondary-btn">Filtrar</button>
+                    {% if data_inicio or data_fim %}<a href="{% url 'dashboard' %}" class="small-btn">Limpar</a>{% endif %}
+                </form>
+            </header>
+
+            <section class="cards">
+                <div class="card success">
+                    <span>Funcionários</span>
+                    <strong>{{ funcionarios }}</strong>
+                </div>
+                <div class="card primary">
+                    <span>Clientes</span>
+                    <strong>{{ clientes }}</strong>
+                </div>
+                <div class="card warning">
+                    <span>Faltas</span>
+                    <strong>{{ faltas }}</strong>
+                </div>
+                <div class="card accent">
+                    <span>Orçamentos</span>
+                    <strong>{{ orcamentos }}</strong>
+                </div>
+                <div class="card">
+                    <span>Receitas</span>
+                    <strong>R$ {{ receitas }}</strong>
+                </div>
+                <div class="card">
+                    <span>Despesas</span>
+                    <strong>R$ {{ despesas }}</strong>
+                </div>
+                <div class="card accent">
+                    <span>Saldo</span>
+                    <strong>R$ {{ saldo }}</strong>
+                </div>
+                <div class="card">
+                    <span>Itens</span>
+                    <strong>{{ itens }}</strong>
+                </div>
+                <div class="card">
+                    <span>Registros de Ponto</span>
+                    <strong>{{ pontos }}</strong>
+                </div>
+            </section>
+
+            <section class="analytics-grid">
+                <div class="panel chart-panel">
+                    <div class="chart-heading">
+                        <div>
+                            <h3>Fluxo financeiro dos últimos 6 meses</h3>
+                            <p>As barras mostram valores brutos; o saldo é a diferença entre entradas e saídas.</p>
+                        </div>
+                        <div class="chart-legend" aria-label="Legenda do gráfico">
+                            <span><i class="legend-dot entrada"></i>Entradas</span>
+                            <span><i class="legend-dot saida"></i>Saídas</span>
+                        </div>
+                    </div>
+                    <div class="chart-area">
+                        <div class="chart-axis" aria-hidden="true">
+                            <span>R$ {{ chart_max|floatformat:0 }}</span>
+                            <span>R$ 0</span>
+                        </div>
+                        <div class="chart-bars">
+                        {% for item in monthly_flow %}
+                            <div class="bar-group">
+                                <div class="bar-stack">
+                                    <span class="bar entrada" style="height: {{ item.entrada_percent }}%;" title="Entrada: R$ {{ item.entrada|floatformat:2 }}"></span>
+                                    <span class="bar saida" style="height: {{ item.saida_percent }}%;" title="Saída: R$ {{ item.saida|floatformat:2 }}"></span>
+                                </div>
+                                <small>{{ item.label|slice:'-2:' }}</small>
+                                <b class="month-balance {% if item.saldo < 0 %}negative{% endif %}">R$ {{ item.saldo|floatformat:0 }}</b>
+                            </div>
+                        {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h3>Últimos orçamentos</h3>
+                    <ul class="list-panel">
+                        {% for orcamento in recent_orcamentos %}
+                            <li>
+                                <strong>{{ orcamento.cliente }}</strong>
+                                <span>{{ orcamento.descricao }}</span>
+                                <small>R$ {{ orcamento.valor }}</small>
+                            </li>
+                        {% empty %}
+                            <li>Nenhum orçamento registrado.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </section>
+
+            <section class="analytics-grid secondary-grid">
+                <div class="panel stock-alert-panel">
+                    <h3>Estoque para reposição</h3>
+                    <ul class="list-panel">
+                        {% for item in estoque_baixo %}
+                            <li><strong>{{ item.nome }}</strong><span>{{ item.obra|default:'Geral' }}</span><small>{{ item.quantidade_disponivel }} disponíveis de {{ item.quantidade_minima }} mínimos</small></li>
+                        {% empty %}
+                            <li>Nenhum item abaixo do mínimo.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <div class="panel">
+                    <h3>Funcionários recentes</h3>
+                    <ul class="list-panel">
+                        {% for funcionario in recent_funcionarios %}
+                            <li>
+                                <strong>{{ funcionario.nome_completo }}</strong>
+                                <span>{{ funcionario.funcao }}</span>
+                                <small>{{ funcionario.cidade }}/{{ funcionario.estado }}</small>
+                            </li>
+                        {% empty %}
+                            <li>Nenhum funcionário ativo.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <div class="panel">
+                    <h3>Clientes recentes</h3>
+                    <ul class="list-panel">
+                        {% for cliente in recent_clientes %}
+                            <li>
+                                <strong>{{ cliente.nome_completo }}</strong>
+                                <span>{{ cliente.empresa }}</span>
+                                <small>{{ cliente.email }}</small>
+                            </li>
+                        {% empty %}
+                            <li>Nenhum cliente cadastrado.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <div class="panel">
+                    <h3>Últimas movimentações</h3>
+                    <ul class="list-panel">
+                        {% for transacao in recent_transacoes %}
+                            <li>
+                                <strong>{{ transacao.descricao }}</strong>
+                                <span>{{ transacao.get_tipo_display }} • {{ transacao.get_categoria_display }}</span>
+                                <small>R$ {{ transacao.valor }}</small>
+                            </li>
+                        {% empty %}
+                            <li>Nenhuma movimentação.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </section>
+        </main>
+    </div>
+</body>
+</html>

@@ -1,0 +1,64 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WPN - {{ config.title }}</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <h1>WPN</h1>
+            <nav>
+                <a href="{% url 'dashboard' %}">Dashboard</a>
+                <a href="{% url 'obras' %}">Obras</a>
+                <a href="{% url 'financeiro' %}" {% if tipo == 'financeiro' %}class="active"{% endif %}>Financeiro</a>
+                <a href="{% url 'orcamentos' %}" {% if tipo == 'orcamento' %}class="active"{% endif %}>Orçamentos</a>
+                <a href="{% url 'materiais' %}" {% if tipo == 'material' %}class="active"{% endif %}>Materiais</a>
+            </nav>
+        </aside>
+        <main class="content">
+            <header class="topbar">
+                <p class="eyebrow">Carga em lote</p>
+                <h2>{{ config.title }}</h2>
+                <p class="page-subtitle">Anexe uma planilha CSV para alimentar a base sem cadastrar item por item.</p>
+            </header>
+
+            <section class="import-grid">
+                <div class="form-box">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        {{ form.as_p }}
+                        <div class="form-actions">
+                            <button type="submit" class="primary-btn">Processar arquivo</button>
+                            <a href="javascript:history.back()" class="secondary-btn">Cancelar</a>
+                        </div>
+                    </form>
+                </div>
+                <div class="panel import-guide">
+                    <p class="eyebrow">Formato esperado</p>
+                    <h3>Prepare seu CSV</h3>
+                    <p>{{ config.description }}</p>
+                    <code>{{ config.example }}</code>
+                    <p class="muted-note">Linhas válidas são importadas. Linhas com erro são ignoradas e listadas no resultado.</p>
+                </div>
+            </section>
+
+            {% if resultado %}
+                <section class="panel import-result">
+                    <h3>Resultado da importação</h3>
+                    <p class="result-success">{{ resultado.imported }} registro(s) importado(s).</p>
+                    {% if resultado.errors %}
+                        <h4>Linhas não importadas</h4>
+                        <ul class="import-errors">
+                            {% for error in resultado.errors %}<li>{{ error }}</li>{% endfor %}
+                        </ul>
+                    {% endif %}
+                </section>
+            {% endif %}
+        </main>
+    </div>
+</body>
+</html>

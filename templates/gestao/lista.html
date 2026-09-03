@@ -1,0 +1,179 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WPN - {{ titulo }}</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <h1>WPN</h1>
+            <nav>
+                <a href="{% url 'dashboard' %}">Dashboard</a>
+                <a href="{% url 'funcionarios' %}" {% if tipo == 'funcionario' %}class="active"{% endif %}>Funcionários</a>
+                <a href="{% url 'clientes' %}" {% if tipo == 'cliente' %}class="active"{% endif %}>Clientes</a>
+                <a href="{% url 'obras' %}" {% if tipo == 'obra' %}class="active"{% endif %}>Obras</a>
+                <a href="{% url 'faltas' %}" {% if tipo == 'falta' %}class="active"{% endif %}>Faltas</a>
+                <a href="{% url 'financeiro' %}" {% if tipo == 'financeiro' %}class="active"{% endif %}>Financeiro</a>
+                <a href="{% url 'orcamentos' %}" {% if tipo == 'orcamento' %}class="active"{% endif %}>Orçamentos</a>
+                <a href="{% url 'materiais' %}" {% if tipo == 'material' %}class="active"{% endif %}>Materiais</a>
+                <a href="{% url 'pontos' %}" {% if tipo == 'ponto' %}class="active"{% endif %}>Ponto</a>
+                <form method="post" action="{% url 'logout' %}" class="logout-form">{% csrf_token %}<button type="submit">Sair</button></form>
+            </nav>
+        </aside>
+
+        <main class="content">
+            <header class="topbar">
+                <div>
+                    <p class="eyebrow">Gestão operacional</p>
+                    <h2>{{ titulo }}</h2>
+                    <p class="page-subtitle">Consulte, acompanhe e mantenha os registros da WPN em ordem.</p>
+                </div>
+            </header>
+
+            <div class="toolbar">
+                {% if tipo == 'funcionario' %}<a class="primary-btn" href="{% url 'funcionario_create' %}">Novo funcionário</a>{% endif %}
+                {% if tipo == 'cliente' %}<a class="primary-btn" href="{% url 'cliente_create' %}">Novo cliente</a>{% endif %}
+                {% if tipo == 'obra' %}<a class="primary-btn" href="{% url 'obra_create' %}">Nova obra</a>{% endif %}
+                {% if tipo == 'falta' %}<a class="primary-btn" href="{% url 'falta_create' %}">Nova falta</a>{% endif %}
+                {% if tipo == 'financeiro' %}<a class="primary-btn" href="{% url 'transacao_create' %}">Nova transação</a>{% endif %}
+                {% if tipo == 'orcamento' %}<a class="primary-btn" href="{% url 'orcamento_create' %}">Novo orçamento</a>{% endif %}
+                {% if tipo == 'material' %}<a class="primary-btn" href="{% url 'item_create' %}">Novo item</a>{% endif %}
+                {% if tipo == 'ponto' %}<a class="primary-btn" href="{% url 'ponto_create' %}">Novo ponto</a>{% endif %}
+                {% if tipo == 'financeiro' %}<a class="secondary-btn" href="{% url 'export_financeiro' %}?format=csv">Exportar CSV</a><a class="secondary-btn" href="{% url 'export_financeiro' %}?format=pdf">Exportar PDF</a>{% endif %}
+                {% if tipo == 'financeiro' %}<a class="secondary-btn import-btn" href="{% url 'import_financeiro' %}">Importar CSV</a>{% endif %}
+                {% if tipo == 'orcamento' %}<a class="secondary-btn" href="{% url 'export_orcamentos' %}">Exportar CSV</a>{% endif %}
+                {% if tipo == 'orcamento' %}<a class="secondary-btn import-btn" href="{% url 'import_orcamentos' %}">Importar CSV</a>{% endif %}
+                {% if tipo == 'material' %}<a class="secondary-btn" href="{% url 'export_itens' %}?format=csv">Exportar CSV</a><a class="secondary-btn" href="{% url 'export_itens' %}?format=pdf">Exportar PDF</a>{% endif %}
+                {% if tipo == 'material' %}<a class="secondary-btn import-btn" href="{% url 'import_materiais' %}">Importar CSV</a>{% endif %}
+            </div>
+
+            {% if tipo == 'financeiro' %}
+                <div class="summary-boxes">
+                    <div class="summary-box"><span>Entradas</span><strong>R$ {{ total_entradas }}</strong></div>
+                    <div class="summary-box"><span>Saídas</span><strong>R$ {{ total_saidas }}</strong></div>
+                    <div class="summary-box"><span>Saldo</span><strong>R$ {{ saldo }}</strong></div>
+                </div>
+            {% endif %}
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        {% if tipo == 'funcionario' %}
+                            <tr><th>Nome</th><th>Função</th><th>CPF</th><th>Cidade</th><th>E-mail</th></tr>
+                        {% elif tipo == 'cliente' %}
+                            <tr><th>Nome</th><th>Empresa</th><th>CNPJ</th><th>Contato</th><th>E-mail</th></tr>
+                        {% elif tipo == 'obra' %}
+                            <tr><th>Obra</th><th>Cliente</th><th>Início</th><th>Previsão</th><th>Status</th><th>Ações</th></tr>
+                        {% elif tipo == 'falta' %}
+                            <tr><th>Funcionário</th><th>Data</th><th>Motivo</th><th>Status</th><th>Presença</th></tr>
+                        {% elif tipo == 'financeiro' %}
+                            <tr><th>Descrição</th><th>Tipo</th><th>Categoria</th><th>Valor</th><th>Data</th><th>Obra</th></tr>
+                        {% elif tipo == 'orcamento' %}
+                            <tr><th>Cliente</th><th>Descrição</th><th>Valor</th><th>Data</th><th>Obra</th></tr>
+                        {% elif tipo == 'material' %}
+                            <tr><th>Nome</th><th>Tipo</th><th>Fabricante</th><th>Quantidade</th><th>Vencimento</th><th>Obra</th><th>Ações</th></tr>
+                        {% elif tipo == 'ponto' %}
+                            <tr><th>Funcionário</th><th>Data</th><th>Entrada</th><th>Saída</th><th>Observação</th><th>Ações</th></tr>
+                        {% endif %}
+                    </thead>
+                    <tbody>
+                        {% for item in registros %}
+                            {% if tipo == 'funcionario' %}
+                                <tr>
+                                    <td>{{ item.nome_completo }}</td>
+                                    <td>{{ item.funcao }}</td>
+                                    <td>{{ item.cpf }}</td>
+                                    <td>{{ item.cidade }}/{{ item.estado }}</td>
+                                    <td>{{ item.email }}</td>
+                                </tr>
+                            {% elif tipo == 'cliente' %}
+                                <tr>
+                                    <td>{{ item.nome_completo }}</td>
+                                    <td>{{ item.empresa }}</td>
+                                    <td>{{ item.cnpj }}</td>
+                                    <td>{{ item.telefone }}</td>
+                                    <td>{{ item.email }}</td>
+                                </tr>
+                            {% elif tipo == 'obra' %}
+                                <tr>
+                                    <td>{{ item.nome }}</td>
+                                    <td>{{ item.cliente }}</td>
+                                    <td>{{ item.data_inicio }}</td>
+                                    <td>{{ item.data_previsao|default:'—' }}</td>
+                                    <td>{{ item.get_status_display }}</td>
+                                    <td>
+                                        <a class="small-btn" href="{% url 'obra_update' item.pk %}">Editar</a>
+                                        <form method="post" action="{% url 'obra_delete' item.pk %}" class="inline-form" onsubmit="return confirm('Excluir esta obra?');">
+                                            {% csrf_token %}<button type="submit" class="small-btn danger">Excluir</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            {% elif tipo == 'falta' %}
+                                <tr>
+                                    <td>{{ item.funcionario }}</td>
+                                    <td>{{ item.data }}</td>
+                                    <td>{{ item.motivo|default:'Sem motivo informado' }}</td>
+                                    <td>{{ item.get_status_display }}</td>
+                                    <td>{% if item.presente %}Presente{% else %}Ausente{% endif %}</td>
+                                </tr>
+                            {% elif tipo == 'financeiro' %}
+                                <tr>
+                                    <td>{{ item.descricao }}</td>
+                                    <td>{{ item.get_tipo_display }}</td>
+                                    <td>{{ item.get_categoria_display }}</td>
+                                    <td>R$ {{ item.valor }}</td>
+                                    <td>{{ item.data }}</td>
+                                    <td>{{ item.obra|default:'Geral' }}</td>
+                                </tr>
+                            {% elif tipo == 'orcamento' %}
+                                <tr>
+                                    <td>{{ item.cliente }}</td>
+                                    <td>{{ item.descricao }}</td>
+                                    <td>R$ {{ item.valor }}</td>
+                                    <td>{{ item.data_orcamento }}</td>
+                                    <td>{{ item.obra|default:'Geral' }}</td>
+                                </tr>
+                            {% elif tipo == 'material' %}
+                                <tr>
+                                    <td>{{ item.nome }}</td>
+                                    <td>{{ item.get_tipo_display }}</td>
+                                    <td>{{ item.fabricante }}</td>
+                                    <td>{{ item.quantidade_disponivel }}</td>
+                                    <td>{{ item.data_vencimento|default:'—' }}</td>
+                                    <td>{{ item.obra|default:'Geral' }}</td>
+                                    <td>
+                                        <a class="small-btn" href="{% url 'item_update' item.pk %}">Editar</a>
+                                        <form method="post" action="{% url 'item_delete' item.pk %}" class="inline-form" onsubmit="return confirm('Excluir este item?');">
+                                            {% csrf_token %}<button type="submit" class="small-btn danger">Excluir</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            {% elif tipo == 'ponto' %}
+                                <tr>
+                                    <td>{{ item.funcionario }}</td>
+                                    <td>{{ item.data }}</td>
+                                    <td>{{ item.entrada|default:'—' }}</td>
+                                    <td>{{ item.saida|default:'—' }}</td>
+                                    <td>{{ item.observacao|default:'—' }}</td>
+                                    <td>
+                                        <a class="small-btn" href="{% url 'ponto_update' item.pk %}">Editar</a>
+                                        <form method="post" action="{% url 'ponto_delete' item.pk %}" class="inline-form" onsubmit="return confirm('Excluir este registro?');">
+                                            {% csrf_token %}<button type="submit" class="small-btn danger">Excluir</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        {% empty %}
+                            <tr><td class="empty-state" colspan="6"><strong>Nenhum registro encontrado</strong><span>Os dados cadastrados aparecerão aqui.</span></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+</body>
+</html>
