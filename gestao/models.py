@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import FileExtensionValidator
@@ -245,9 +247,35 @@ class Transacao(models.Model):
     tipo = models.CharField(max_length=12, choices=TIPO_CHOICES)
     categoria = models.CharField(max_length=20, choices=CATEGORIA_CHOICES)
     obra = models.ForeignKey(Obra, on_delete=models.SET_NULL, null=True, blank=True, related_name='transacoes')
+    data_vencimento = models.DateField(null=True, blank=True)
+    centro_custo = models.CharField(max_length=120, blank=True)
+    status = models.CharField(max_length=20, choices=[('pendente', 'Pendente'), ('parcial', 'Parcial'), ('pago', 'Pago'), ('cancelado', 'Cancelado')], default='pendente')
 
     def __str__(self):
         return self.descricao
+
+    @property
+    def total_pago(self):
+        return sum((pagamento.valor for pagamento in self.pagamentos.all()), Decimal('0.00'))
+
+    @property
+    def saldo_aberto(self):
+        return max(Decimal(self.valor) - self.total_pago, Decimal('0.00'))
+
+
+class Pagamento(models.Model):
+    transacao = models.ForeignKey(Transacao, on_delete=models.CASCADE, related_name='pagamentos')
+    valor = models.DecimalField(max_digits=12, decimal_places=2)
+    data = models.DateField(default=timezone.localdate)
+    observacao = models.CharField(max_length=250, blank=True)
+    criado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+
+    def clean(self):
+        valor = Decimal(self.valor)
+        if valor <= 0:
+            raise ValidationError({'valor': 'O pagamento deve ser maior que zero.'})
+        if self.transacao_id and valor > self.transacao.saldo_aberto:
+            raise ValidationError({'valor': 'O pagamento não pode ultrapassar o saldo aberto.'})
 
 
 class Orcamento(models.Model):

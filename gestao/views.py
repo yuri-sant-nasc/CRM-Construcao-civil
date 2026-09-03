@@ -3,7 +3,7 @@ from decimal import Decimal
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required, permission_required
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.views.decorators.http import require_POST
 from django.db.models import F, Sum
 from django.http import FileResponse, HttpResponse
@@ -29,10 +29,12 @@ from .forms import (
     OportunidadeForm,
     OcorrenciaForm,
     OrcamentoForm,
+    PagamentoForm,
     PontoForm,
     TransacaoForm,
 )
 from .models import Cliente, Falta, FotoObra, Funcionario, HistoricoOportunidade, Item, ItemOrcamento, Obra, Oportunidade, Orcamento, Ponto, Transacao, VersaoOrcamento
+from .models import Cliente, Falta, FotoObra, Funcionario, HistoricoOportunidade, Item, ItemOrcamento, Obra, Oportunidade, Orcamento, Pagamento, Ponto, Transacao, VersaoOrcamento
 from .importers import IMPORT_CONFIG, import_csv
 from .pdf_utils import build_pdf_response
 
@@ -470,10 +472,52 @@ def falta_delete(request, pk):
 @permission_required('gestao.view_transacao', raise_exception=True)
 def financeiro(request):
     registros = Transacao.objects.order_by('-data')
+    obra = request.GET.get('obra')
+    status = request.GET.get('status')
+    if obra and obra.isdigit():
+        registros = registros.filter(obra_id=obra)
+    if status in dict(Transacao._meta.get_field('status').choices):
+        registros = registros.filter(status=status)
     total_entradas = registros.filter(tipo='entrada').aggregate(total=Sum('valor'))['total'] or 0
     total_saidas = registros.filter(tipo='saida').aggregate(total=Sum('valor'))['total'] or 0
     saldo = total_entradas - total_saidas
-    return render(request, 'gestao/lista.html', {'titulo': 'Financeiro', 'registros': registros, 'tipo': 'financeiro', 'total_entradas': total_entradas, 'total_saidas': total_saidas, 'saldo': saldo})
+    return render(request, 'gestao/lista.html', {'titulo': 'Financeiro', 'registros': registros, 'tipo': 'financeiro', 'total_entradas': total_entradas, 'total_saidas': total_saidas, 'saldo': saldo, 'obras_financeiro': Obra.objects.order_by('nome'), 'obra_financeiro_atual': obra or '', 'status_financeiro_choices': Transacao._meta.get_field('status').choices, 'status_financeiro_atual': status or ''})
+
+
+@login_required(login_url='login')
+@permission_required('gestao.view_transacao', raise_exception=True)
+def painel_financeiro(request):
+    obras = Obra.objects.order_by('nome')
+    obra_id = request.GET.get('obra')
+    data_inicio_texto = request.GET.get('data_inicio', '')
+    data_fim_texto = request.GET.get('data_fim', '')
+    data_inicio = parse_date(data_inicio_texto)
+    data_fim = parse_date(data_fim_texto)
+    if obra_id and obra_id.isdigit():
+        obras = obras.filter(pk=obra_id)
+    painel = []
+    for obra in obras:
+        orcamentos = Orcamento.objects.filter(obra=obra)
+        transacoes = Transacao.objects.filter(obra=obra)
+        if data_inicio:
+            orcamentos = orcamentos.filter(data_orcamento__gte=data_inicio)
+            transacoes = transacoes.filter(data__gte=data_inicio)
+        if data_fim:
+            orcamentos = orcamentos.filter(data_orcamento__lte=data_fim)
+            transacoes = transacoes.filter(data__lte=data_fim)
+        previsto = orcamentos.aggregate(total=Sum('valor'))['total'] or Decimal('0.00')
+        receitas = transacoes.filter(tipo='entrada').aggregate(total=Sum('valor'))['total'] or Decimal('0.00')
+        despesas = transacoes.filter(tipo='saida').aggregate(total=Sum('valor'))['total'] or Decimal('0.00')
+        painel.append({
+            'obra': obra, 'previsto': previsto, 'receitas': receitas,
+            'despesas': despesas, 'resultado': receitas - despesas,
+            'saldo_previsto': previsto - despesas,
+            'execucao_percentual': round(float(despesas / previsto * 100), 2) if previsto else 0,
+        })
+    return render(request, 'gestao/painel_financeiro.html', {
+        'painel': painel, 'obras': Obra.objects.order_by('nome'),
+        'obra_atual': obra_id or '', 'data_inicio': data_inicio_texto, 'data_fim': data_fim_texto,
+    })
 
 
 @login_required(login_url='login')
@@ -535,6 +579,27 @@ def transacao_update(request, pk):
 @permission_required('gestao.delete_transacao', raise_exception=True)
 def transacao_delete(request, pk):
     Transacao.objects.filter(pk=pk).delete()
+    return redirect('financeiro')
+
+
+@login_required(login_url='login')
+@require_POST
+@permission_required('gestao.add_pagamento', raise_exception=True)
+def pagamento_create(request, pk):
+    transacao = get_object_or_404(Transacao, pk=pk)
+    form = PagamentoForm(request.POST)
+    if form.is_valid():
+        pagamento = form.save(commit=False)
+        pagamento.transacao = transacao
+        pagamento.criado_por = request.user
+        try:
+            pagamento.full_clean()
+            pagamento.save()
+            transacao.status = 'pago' if transacao.saldo_aberto == 0 else 'parcial'
+            transacao.save(update_fields=['status'])
+            messages.success(request, 'Pagamento registrado.')
+        except ValidationError as exc:
+            messages.error(request, str(exc))
     return redirect('financeiro')
 
 

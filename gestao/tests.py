@@ -20,6 +20,7 @@ from .models import (
     Oportunidade,
     Obra,
     Ocorrencia,
+    Pagamento,
     Ponto,
     Transacao,
     VersaoOrcamento,
@@ -489,6 +490,58 @@ class SecurityTests(TestCase):
         self.assertEqual(versao.valor_anterior, 1000)
         self.assertEqual(versao.valor_novo, 1100)
         self.assertEqual(versao.itens_snapshot[0]['descricao'], 'Projeto')
+
+    def test_finance_payment_updates_partial_and_paid_status(self):
+        self.user.user_permissions.add(
+            Permission.objects.get(codename='view_transacao'),
+            Permission.objects.get(codename='add_pagamento'),
+        )
+        cliente = Cliente.objects.create(
+            nome_completo='Cliente Financeiro', empresa='Empresa', cargo='Diretor',
+            cnpj='20212223000166', descricao_pedido='Construção', bairro='Centro',
+            rua='Rua M', numero='13', cidade='Tatuí', estado='SP',
+            telefone='15920000000', email='financeiro-obra@example.com',
+        )
+        obra = Obra.objects.create(nome='Obra Financeira', cliente=cliente, endereco='Rua M, 13', data_inicio=date(2026, 1, 1))
+        transacao = Transacao.objects.create(valor='1000.00', data=date(2026, 1, 1), descricao='Parcela', tipo='saida', categoria='materiais', obra=obra)
+
+        first = self.client.post(f'/financeiro/{transacao.pk}/pagamento/', {'valor': '400.00', 'data': '2026-09-02'})
+        transacao.refresh_from_db()
+        second = self.client.post(f'/financeiro/{transacao.pk}/pagamento/', {'valor': '600.00', 'data': '2026-09-03'})
+        transacao.refresh_from_db()
+
+        self.assertEqual(first.status_code, 302)
+        self.assertEqual(second.status_code, 302)
+        self.assertEqual(transacao.status, 'pago')
+        self.assertEqual(transacao.total_pago, 1000)
+        self.assertEqual(transacao.saldo_aberto, 0)
+
+    def test_payment_cannot_exceed_open_balance(self):
+        transacao = Transacao.objects.create(valor='100.00', data=date(2026, 1, 1), descricao='Despesa', tipo='saida', categoria='outros')
+        pagamento = Pagamento(transacao=transacao, valor='100.01')
+
+        with self.assertRaises(ValidationError):
+            pagamento.full_clean()
+
+    def test_financial_dashboard_aggregates_values_by_work(self):
+        self.user.user_permissions.add(Permission.objects.get(codename='view_transacao'))
+        cliente = Cliente.objects.create(
+            nome_completo='Cliente Painel', empresa='Empresa', cargo='Diretor',
+            cnpj='24252627000133', descricao_pedido='Construção', bairro='Centro',
+            rua='Rua N', numero='14', cidade='Tatuí', estado='SP',
+            telefone='15924440000', email='painel@example.com',
+        )
+        obra = Obra.objects.create(nome='Obra Painel', cliente=cliente, endereco='Rua N, 14', data_inicio=date(2026, 1, 1))
+        Orcamento.objects.create(cliente=cliente, obra=obra, data_orcamento=date(2026, 1, 1), descricao='Contrato', valor='10000.00')
+        Transacao.objects.create(valor='2500.00', data=date(2026, 1, 2), descricao='Material', tipo='saida', categoria='materiais', obra=obra)
+        Transacao.objects.create(valor='8000.00', data=date(2026, 1, 3), descricao='Recebimento', tipo='entrada', categoria='outros', obra=obra)
+
+        response = self.client.get('/financeiro/painel/?obra={}'.format(obra.pk))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Obra Painel')
+        self.assertContains(response, '10000.00')
+        self.assertContains(response, '5500.00')
 
     def test_work_operation_page_registers_and_downloads_records(self):
         permissions = Permission.objects.filter(codename__in=(

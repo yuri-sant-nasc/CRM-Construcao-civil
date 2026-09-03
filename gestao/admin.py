@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import AuditLog, Cliente, DiarioObra, Falta, FotoObra, Funcionario, Item, ItemOrcamento, Obra, Ocorrencia, Oportunidade, Orcamento, Transacao, VersaoOrcamento
+from .models import AuditLog, Cliente, DiarioObra, Falta, FotoObra, Funcionario, Item, ItemOrcamento, Obra, Ocorrencia, Oportunidade, Orcamento, Pagamento, Transacao, VersaoOrcamento
 
 
 @admin.register(AuditLog)
@@ -66,9 +66,14 @@ class FaltaAdmin(admin.ModelAdmin):
 
 @admin.register(Transacao)
 class TransacaoAdmin(admin.ModelAdmin):
-    list_display = ('descricao', 'tipo', 'categoria', 'obra', 'valor', 'data')
-    list_filter = ('tipo', 'categoria', 'data')
+    list_display = ('descricao', 'tipo', 'categoria', 'obra', 'valor', 'status', 'data_vencimento')
+    list_filter = ('tipo', 'categoria', 'status', 'data')
 
+
+@admin.register(Pagamento)
+class PagamentoAdmin(admin.ModelAdmin):
+    list_display = ('transacao', 'valor', 'data', 'criado_por')
+    list_filter = ('data',)
 
 @admin.register(Orcamento)
 class OrcamentoAdmin(admin.ModelAdmin):

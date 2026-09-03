@@ -14,6 +14,7 @@ erDiagram
     CLIENTE ||--o{ OBRA : contrata
     OBRA ||--o{ ORCAMENTO : detalha
     OBRA ||--o{ TRANSACAO : registra
+    TRANSACAO ||--o{ PAGAMENTO : recebe
     OBRA ||--o{ ITEM : consome
     OBRA ||--o{ DIARIO_OBRA : registra
     OBRA ||--o{ OCORRENCIA : possui
@@ -108,6 +109,13 @@ erDiagram
         int obra_id FK
         decimal valor
         string tipo
+    }
+    PAGAMENTO {
+        int id PK
+        int transacao_id FK
+        decimal valor
+        date data
+        int criado_por_id FK
     }
     ITEM {
         int id PK

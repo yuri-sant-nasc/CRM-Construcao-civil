@@ -36,9 +36,11 @@ urlpatterns = [
     path('faltas/<int:pk>/excluir/', views.falta_delete, name='falta_delete'),
 
     path('financeiro/', views.financeiro, name='financeiro'),
+    path('financeiro/painel/', views.painel_financeiro, name='painel_financeiro'),
     path('financeiro/novo/', views.transacao_create, name='transacao_create'),
     path('financeiro/<int:pk>/editar/', views.transacao_update, name='transacao_update'),
     path('financeiro/<int:pk>/excluir/', views.transacao_delete, name='transacao_delete'),
+    path('financeiro/<int:pk>/pagamento/', views.pagamento_create, name='pagamento_create'),
     path('financeiro/exportar/', views.export_financeiro, name='export_financeiro'),
     path('financeiro/importar/', views.importacao_csv, {'tipo': 'financeiro'}, name='import_financeiro'),
 

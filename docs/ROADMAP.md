@@ -63,11 +63,13 @@ Este roadmap transforma as melhorias do CRM em tarefas independentes. Execute um
 
 #### T04 - Financeiro por obra
 
-**Status:** `PENDENTE`
+**Status:** `CONCLUIDA`
 
 **Objetivo:** acompanhar previsto, realizado, contas a pagar/receber e resultado por obra.
 
-**Entregas:** vencimento, pagamento parcial, status financeiro, centro de custo e indicadores por obra.
+**Entregas realizadas:** vencimento, pagamento parcial, status financeiro, centro de custo, saldo aberto, filtros por obra/status e permissões para lançamento.
+
+**Entregas realizadas:** vencimento, pagamento parcial, status financeiro, centro de custo, saldo aberto, filtros por obra/status, permissões para lançamento e painel gerencial com previsto versus realizado por obra.
 
 **Testes obrigatorios:** saldo por obra, vencimentos, pagamentos parciais, filtros de periodo, valores monetarios e isolamento por permissao.
 

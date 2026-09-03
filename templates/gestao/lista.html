@@ -56,7 +56,13 @@
                         <label>Responsável <select name="responsavel" onchange="this.form.submit()"><option value="">Todos</option>{% for responsavel_item in responsaveis_obra %}<option value="{{ responsavel_item.pk }}" {% if responsavel_obra_atual == responsavel_item.pk|stringformat:'s' %}selected{% endif %}>{{ responsavel_item.nome_completo }}</option>{% endfor %}</select></label>
                     </form>
                 {% endif %}
-                {% if tipo == 'financeiro' %}<a class="secondary-btn" href="{% url 'export_financeiro' %}?format=csv">Exportar CSV</a><a class="secondary-btn" href="{% url 'export_financeiro' %}?format=pdf">Exportar PDF</a>{% endif %}
+                {% if tipo == 'financeiro' %}
+                    <form method="get" class="inline-filter">
+                        <label>Obra <select name="obra" onchange="this.form.submit()"><option value="">Todas</option>{% for obra_financeiro in obras_financeiro %}<option value="{{ obra_financeiro.pk }}" {% if obra_financeiro_atual == obra_financeiro.pk|stringformat:'s' %}selected{% endif %}>{{ obra_financeiro.nome }}</option>{% endfor %}</select></label>
+                        <label>Status <select name="status" onchange="this.form.submit()"><option value="">Todos</option>{% for value, label in status_financeiro_choices %}<option value="{{ value }}" {% if status_financeiro_atual == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+                    </form>
+                {% endif %}
+                {% if tipo == 'financeiro' %}<a class="secondary-btn" href="{% url 'painel_financeiro' %}">Painel por obra</a><a class="secondary-btn" href="{% url 'export_financeiro' %}?format=csv">Exportar CSV</a><a class="secondary-btn" href="{% url 'export_financeiro' %}?format=pdf">Exportar PDF</a>{% endif %}
                 {% if tipo == 'financeiro' %}<a class="secondary-btn import-btn" href="{% url 'import_financeiro' %}">Importar CSV</a>{% endif %}
                 {% if tipo == 'orcamento' %}<a class="secondary-btn" href="{% url 'export_orcamentos' %}">Exportar CSV</a>{% endif %}
                 {% if tipo == 'orcamento' %}<a class="secondary-btn import-btn" href="{% url 'import_orcamentos' %}">Importar CSV</a>{% endif %}
@@ -86,7 +92,7 @@
                         {% elif tipo == 'falta' %}
                             <tr><th>Funcionário</th><th>Data</th><th>Motivo</th><th>Status</th><th>Presença</th></tr>
                         {% elif tipo == 'financeiro' %}
-                            <tr><th>Descrição</th><th>Tipo</th><th>Categoria</th><th>Valor</th><th>Data</th><th>Obra</th></tr>
+                            <tr><th>Descrição</th><th>Tipo</th><th>Categoria</th><th>Valor</th><th>Vencimento</th><th>Status</th><th>Obra</th><th>Pagamento</th></tr>
                         {% elif tipo == 'orcamento' %}
                             <tr><th>Cliente</th><th>Descrição</th><th>Valor</th><th>Data</th><th>Obra</th><th>Ações</th></tr>
                         {% elif tipo == 'material' %}
@@ -156,8 +162,10 @@
                                     <td>{{ item.get_tipo_display }}</td>
                                     <td>{{ item.get_categoria_display }}</td>
                                     <td>R$ {{ item.valor }}</td>
-                                    <td>{{ item.data }}</td>
+                                    <td>{{ item.data_vencimento|default:'-' }}</td>
+                                    <td>{{ item.get_status_display }} · R$ {{ item.saldo_aberto|floatformat:2 }} aberto</td>
                                     <td>{{ item.obra|default:'Geral' }}</td>
+                                    <td>{% if item.status != 'pago' and item.status != 'cancelado' and perms.gestao.add_pagamento %}<form method="post" action="{% url 'pagamento_create' item.pk %}" class="inline-form">{% csrf_token %}<input type="number" name="valor" min="0.01" max="{{ item.saldo_aberto }}" step="0.01" placeholder="Valor"><button type="submit" class="small-btn">Pagar</button></form>{% else %}-{% endif %}</td>
                                 </tr>
                             {% elif tipo == 'orcamento' %}
                                 <tr>

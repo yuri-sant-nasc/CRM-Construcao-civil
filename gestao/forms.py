@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm
 
-from .models import Cliente, DiarioObra, Falta, FotoObra, Funcionario, Item, ItemOrcamento, Obra, Ocorrencia, Oportunidade, Orcamento, Ponto, Transacao
+from .models import Cliente, DiarioObra, Falta, FotoObra, Funcionario, Item, ItemOrcamento, Obra, Ocorrencia, Oportunidade, Orcamento, Pagamento, Ponto, Transacao
 
 
 class LoginForm(AuthenticationForm):
@@ -143,7 +143,7 @@ class FaltaForm(forms.ModelForm):
 class TransacaoForm(forms.ModelForm):
     class Meta:
         model = Transacao
-        fields = ['valor', 'data', 'descricao', 'tipo', 'categoria', 'obra']
+        fields = ['valor', 'data', 'descricao', 'tipo', 'categoria', 'obra', 'data_vencimento', 'centro_custo', 'status']
         widgets = {
             'valor': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
             'data': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
@@ -151,7 +151,17 @@ class TransacaoForm(forms.ModelForm):
             'tipo': forms.Select(attrs={'class': 'form-control'}),
             'categoria': forms.Select(attrs={'class': 'form-control'}),
             'obra': forms.Select(attrs={'class': 'form-control'}),
+            'data_vencimento': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'centro_custo': forms.TextInput(attrs={'class': 'form-control'}),
+            'status': forms.Select(attrs={'class': 'form-control'}),
         }
+
+
+class PagamentoForm(forms.ModelForm):
+    class Meta:
+        model = Pagamento
+        fields = ['valor', 'data', 'observacao']
+        widgets = {'valor': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0.01'}), 'data': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}), 'observacao': forms.TextInput(attrs={'class': 'form-control'})}
 
 
 class OrcamentoForm(forms.ModelForm):
