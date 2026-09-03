@@ -167,6 +167,118 @@ Este roadmap transforma as melhorias do CRM em tarefas independentes. Execute um
 
 **Diagrama:** nao altera entidades; documentar fontes de cada indicador.
 
+### UX/UI e experiencia operacional
+
+As tarefas desta frente devem ser executadas junto das funcionalidades correspondentes. Toda alteracao visual deve ser validada em desktop e mobile, com dados longos, estados vazios, erros e permissoes reduzidas.
+
+#### UX01 - Navegacao orientada ao trabalho
+
+**Status:** `PENDENTE`
+
+**Objetivo:** reduzir o tempo para chegar a clientes, oportunidades, obras e pendencias.
+
+**Entregas:** menu agrupado por Comercial, Obras, Financeiro e Cadastros; destaque da pagina atual; breadcrumb nas telas internas; acesso rapido a busca e tarefas; navegacao adequada para telas pequenas.
+
+**Testes obrigatorios:** todos os links funcionam, rota atual fica identificada, usuario sem permissao nao ve atalhos indevidos, teclado percorre a navegacao e layout nao cria rolagem horizontal em 320px.
+
+**Diagrama:** nao altera entidades; se houver nova busca ou notificacao, atualizar as tarefas T11/T12.
+
+#### UX02 - Dashboard para decisao da construtora
+
+**Status:** `PENDENTE`
+
+**Objetivo:** apresentar rapidamente o que exige acao hoje.
+
+**Entregas:** cards de obras atrasadas, oportunidades por etapa, contas proximas do vencimento, estoque critico e atividades recentes; filtros persistentes por periodo, obra e responsavel; estados vazios explicativos.
+
+**Testes obrigatorios:** totais batem com a base, filtros combinam corretamente, valores monetarios usam formato brasileiro, dados nao aparecem sem permissao e componentes funcionam em mobile.
+
+**Diagrama:** nao altera entidades; documentar as fontes dos indicadores em T13.
+
+#### UX03 - Listas, busca e filtros operacionais
+
+**Status:** `PENDENTE`
+
+**Objetivo:** facilitar comparacao e localizacao de registros no trabalho diario.
+
+**Entregas:** busca visivel, filtros por status/obra/responsavel/periodo, ordenacao, paginacao, colunas responsivas, acao em lote somente onde fizer sentido e preservacao dos filtros ao voltar.
+
+**Testes obrigatorios:** busca sem resultado, muitos registros, filtros combinados, paginacao, consulta com caracteres especiais, permissao e viewport mobile.
+
+**Diagrama:** nao altera entidades; novos indices devem ser documentados em T12.
+
+#### UX04 - Formulario de cadastro sem retrabalho
+
+**Status:** `PENDENTE`
+
+**Objetivo:** reduzir erros de cadastro de clientes, obras, oportunidades e orcamentos.
+
+**Entregas:** campos agrupados por contexto, obrigatorios identificados, mascaras para CPF/CNPJ/telefone/moeda, ajuda contextual, validacao proxima ao campo, preservacao dos dados apos erro e confirmacao antes de exclusao.
+
+**Testes obrigatorios:** erros por campo, valores invalidos, teclado, leitores de tela, envio duplicado, perda de sessao e validacao server-side equivalente.
+
+**Diagrama:** nao altera entidades; alterações de campos exigem atualização do diagrama e migração.
+
+#### UX05 - Operacao de obra em campo
+
+**Status:** `PENDENTE`
+
+**Objetivo:** permitir uso rapido no celular durante a visita ou execução da obra.
+
+**Entregas:** painel da obra com status e progresso em destaque, diario com poucos passos, captura de foto pelo celular, ocorrencia com prioridade, leitura adequada sob luz forte e botoes grandes para toque.
+
+**Testes obrigatorios:** viewport 320px/390px, upload por camera, conexao lenta, falha de upload sem perder texto, toque sem sobreposicao e permissao por perfil.
+
+**Diagrama:** nao altera entidades; o armazenamento de fotos segue T15 e deve atualizar o diagrama de infraestrutura.
+
+#### UX06 - Orcamento legivel para cliente e equipe
+
+**Status:** `PENDENTE`
+
+**Objetivo:** tornar custos e margem compreensiveis sem expor informacao indevida.
+
+**Entregas:** resumo financeiro destacado, composicao por categoria, diferenca entre custo e preco de venda, comparacao de versoes, preview da proposta e PDF com identidade visual consistente.
+
+**Testes obrigatorios:** arredondamento, totais, versoes, PDF em A4 e mobile, dados do cliente corretos e ausencia de custo interno quando a proposta for externa.
+
+**Diagrama:** atualiza entidades apenas quando houver novos campos de apresentacao ou versao; manter T03 e DIAGRAMA.md sincronizados.
+
+#### UX07 - Feedback, estados e recuperacao de erro
+
+**Status:** `PENDENTE`
+
+**Objetivo:** deixar claro o resultado de cada acao e como continuar quando algo falhar.
+
+**Entregas:** mensagens de sucesso/erro consistentes, loading em operacoes demoradas, estados vazios, confirmacao de exclusao, pagina de erro amigavel, retry seguro e identificador para suporte.
+
+**Testes obrigatorios:** sucesso, erro de validacao, timeout, falha de permissao, envio repetido, resposta 404/500 e mensagens acessiveis por leitor de tela.
+
+**Diagrama:** nao altera entidades; incidentes e logs devem ser cobertos por T17.
+
+#### UX08 - Acessibilidade e consistencia visual
+
+**Status:** `PENDENTE`
+
+**Objetivo:** tornar o sistema utilizavel por diferentes perfis, dispositivos e capacidades.
+
+**Entregas:** contraste adequado, foco visivel, hierarquia de headings, labels associados, textos alternativos, navegação por teclado, componentes reutilizaveis e tokens de cor/espacamento.
+
+**Testes obrigatorios:** axe ou equivalente, teclado sem mouse, zoom 200%, contraste, leitor de tela basico e navegadores suportados.
+
+**Diagrama:** nao altera entidades.
+
+#### UX09 - Validacao com usuarios da construcao civil
+
+**Status:** `PENDENTE`
+
+**Objetivo:** validar a interface com quem vende, gerencia e executa obras.
+
+**Entregas:** roteiros para comercial, engenheiro/mestre, financeiro e almoxarifado; testes moderados; registro de problemas por gravidade; revisao apos cada entrega.
+
+**Testes obrigatorios:** pelo menos um cenario real por perfil, medicao de tempo, taxa de conclusao, erros observados e aceite dos fluxos criticos.
+
+**Diagrama:** nao altera entidades; descobertas que mudarem o dominio devem abrir tarefa de modelo e atualizar DIAGRAMA.md.
+
 ### Qualidade, operacao e seguranca
 
 #### T14 - PostgreSQL, backups e restauracao
