@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, permission_required
+from django.core.exceptions import PermissionDenied
 from django.views.decorators.http import require_POST
 from django.db.models import F, Sum
 from django.http import HttpResponse
@@ -63,6 +64,7 @@ def logout_view(request):
 
 
 @login_required(login_url='login')
+@permission_required('gestao.view_transacao', raise_exception=True)
 def dashboard(request):
     funcionarios = Funcionario.objects.filter(ativo=True).count()
     clientes = Cliente.objects.filter(ativo=True).count()
@@ -143,12 +145,14 @@ def dashboard(request):
 
 
 @login_required(login_url='login')
+@permission_required('gestao.view_funcionario', raise_exception=True)
 def funcionarios(request):
     registros = Funcionario.objects.filter(ativo=True).order_by('-id')
     return render(request, 'gestao/lista.html', {'titulo': 'Funcionários', 'registros': registros, 'tipo': 'funcionario'})
 
 
 @login_required(login_url='login')
+@permission_required('gestao.add_funcionario', raise_exception=True)
 def funcionario_create(request):
     if request.method == 'POST':
         form = FuncionarioForm(request.POST)
@@ -161,6 +165,7 @@ def funcionario_create(request):
 
 
 @login_required(login_url='login')
+@permission_required('gestao.change_funcionario', raise_exception=True)
 def funcionario_update(request, pk):
     obj = get_object_or_404(Funcionario, pk=pk)
     if request.method == 'POST':
@@ -175,6 +180,7 @@ def funcionario_update(request, pk):
 
 @login_required(login_url='login')
 @require_POST
+@permission_required('gestao.delete_funcionario', raise_exception=True)
 def funcionario_delete(request, pk):
     obj = get_object_or_404(Funcionario, pk=pk)
     obj.ativo = False
@@ -183,18 +189,21 @@ def funcionario_delete(request, pk):
 
 
 @login_required(login_url='login')
+@permission_required('gestao.view_cliente', raise_exception=True)
 def clientes(request):
     registros = Cliente.objects.filter(ativo=True).order_by('-id')
     return render(request, 'gestao/lista.html', {'titulo': 'Clientes', 'registros': registros, 'tipo': 'cliente'})
 
 
 @login_required(login_url='login')
+@permission_required('gestao.view_obra', raise_exception=True)
 def obras(request):
     registros = Obra.objects.select_related('cliente').all()
     return render(request, 'gestao/lista.html', {'titulo': 'Obras', 'registros': registros, 'tipo': 'obra'})
 
 
 @login_required(login_url='login')
+@permission_required('gestao.add_obra', raise_exception=True)
 def obra_create(request):
     form = ObraForm(request.POST or None)
     if request.method == 'POST' and form.is_valid():
@@ -204,6 +213,7 @@ def obra_create(request):
 
 
 @login_required(login_url='login')
+@permission_required('gestao.change_obra', raise_exception=True)
 def obra_update(request, pk):
     obj = get_object_or_404(Obra, pk=pk)
     form = ObraForm(request.POST or None, instance=obj)
@@ -215,12 +225,14 @@ def obra_update(request, pk):
 
 @login_required(login_url='login')
 @require_POST
+@permission_required('gestao.delete_obra', raise_exception=True)
 def obra_delete(request, pk):
     Obra.objects.filter(pk=pk).delete()
     return redirect('obras')
 
 
 @login_required(login_url='login')
+@permission_required('gestao.add_cliente', raise_exception=True)
 def cliente_create(request):
     if request.method == 'POST':
         form = ClienteForm(request.POST)
@@ -233,6 +245,7 @@ def cliente_create(request):
 
 
 @login_required(login_url='login')
+@permission_required('gestao.change_cliente', raise_exception=True)
 def cliente_update(request, pk):
     obj = get_object_or_404(Cliente, pk=pk)
     if request.method == 'POST':
@@ -247,6 +260,7 @@ def cliente_update(request, pk):
 
 @login_required(login_url='login')
 @require_POST
+@permission_required('gestao.delete_cliente', raise_exception=True)
 def cliente_delete(request, pk):
     obj = get_object_or_404(Cliente, pk=pk)
     obj.ativo = False
@@ -255,12 +269,14 @@ def cliente_delete(request, pk):
 
 
 @login_required(login_url='login')
+@permission_required('gestao.view_falta', raise_exception=True)
 def faltas(request):
     registros = Falta.objects.filter(ativo=True).select_related('funcionario').order_by('-data')
     return render(request, 'gestao/lista.html', {'titulo': 'Faltas', 'registros': registros, 'tipo': 'falta'})
 
 
 @login_required(login_url='login')
+@permission_required('gestao.add_falta', raise_exception=True)
 def falta_create(request):
     if request.method == 'POST':
         form = FaltaForm(request.POST)
@@ -273,6 +289,7 @@ def falta_create(request):
 
 
 @login_required(login_url='login')
+@permission_required('gestao.change_falta', raise_exception=True)
 def falta_update(request, pk):
     obj = get_object_or_404(Falta, pk=pk)
     if request.method == 'POST':
@@ -287,6 +304,7 @@ def falta_update(request, pk):
 
 @login_required(login_url='login')
 @require_POST
+@permission_required('gestao.delete_falta', raise_exception=True)
 def falta_delete(request, pk):
     obj = get_object_or_404(Falta, pk=pk)
     obj.ativo = False
@@ -295,6 +313,7 @@ def falta_delete(request, pk):
 
 
 @login_required(login_url='login')
+@permission_required('gestao.view_transacao', raise_exception=True)
 def financeiro(request):
     registros = Transacao.objects.order_by('-data')
     total_entradas = registros.filter(tipo='entrada').aggregate(total=Sum('valor'))['total'] or 0
@@ -308,6 +327,13 @@ def importacao_csv(request, tipo):
     config = IMPORT_CONFIG.get(tipo)
     if config is None:
         return redirect('dashboard')
+    import_permissions = {
+        'financeiro': 'gestao.add_transacao',
+        'orcamento': 'gestao.add_orcamento',
+        'material': 'gestao.add_item',
+    }
+    if not request.user.has_perm(import_permissions[tipo]):
+        raise PermissionDenied
     form = ImportacaoCSVForm(request.POST or None, request.FILES or None)
     resultado = None
     if request.method == 'POST' and form.is_valid():
@@ -324,6 +350,7 @@ def importacao_csv(request, tipo):
 
 
 @login_required(login_url='login')
+@permission_required('gestao.add_transacao', raise_exception=True)
 def transacao_create(request):
     if request.method == 'POST':
         form = TransacaoForm(request.POST)
@@ -336,6 +363,7 @@ def transacao_create(request):
 
 
 @login_required(login_url='login')
+@permission_required('gestao.change_transacao', raise_exception=True)
 def transacao_update(request, pk):
     obj = get_object_or_404(Transacao, pk=pk)
     if request.method == 'POST':
@@ -350,12 +378,14 @@ def transacao_update(request, pk):
 
 @login_required(login_url='login')
 @require_POST
+@permission_required('gestao.delete_transacao', raise_exception=True)
 def transacao_delete(request, pk):
     Transacao.objects.filter(pk=pk).delete()
     return redirect('financeiro')
 
 
 @login_required(login_url='login')
+@permission_required('gestao.view_transacao', raise_exception=True)
 def export_financeiro(request):
     queryset = Transacao.objects.all().order_by('-data')
     fields = ['descricao', 'tipo', 'categoria', 'valor', 'data']
@@ -373,12 +403,14 @@ def export_financeiro(request):
 
 
 @login_required(login_url='login')
+@permission_required('gestao.view_orcamento', raise_exception=True)
 def orcamentos(request):
     registros = Orcamento.objects.select_related('cliente').order_by('-data_orcamento')
     return render(request, 'gestao/lista.html', {'titulo': 'Orçamentos', 'registros': registros, 'tipo': 'orcamento'})
 
 
 @login_required(login_url='login')
+@permission_required('gestao.add_orcamento', raise_exception=True)
 def orcamento_create(request):
     if request.method == 'POST':
         form = OrcamentoForm(request.POST)
@@ -391,6 +423,7 @@ def orcamento_create(request):
 
 
 @login_required(login_url='login')
+@permission_required('gestao.change_orcamento', raise_exception=True)
 def orcamento_update(request, pk):
     obj = get_object_or_404(Orcamento, pk=pk)
     if request.method == 'POST':
@@ -405,24 +438,28 @@ def orcamento_update(request, pk):
 
 @login_required(login_url='login')
 @require_POST
+@permission_required('gestao.delete_orcamento', raise_exception=True)
 def orcamento_delete(request, pk):
     Orcamento.objects.filter(pk=pk).delete()
     return redirect('orcamentos')
 
 
 @login_required(login_url='login')
+@permission_required('gestao.view_orcamento', raise_exception=True)
 def export_orcamentos(request):
     queryset = Orcamento.objects.select_related('cliente').all().order_by('-data_orcamento')
     return export_csv('orcamentos', queryset, ['cliente', 'descricao', 'valor', 'data_orcamento'])
 
 
 @login_required(login_url='login')
+@permission_required('gestao.view_item', raise_exception=True)
 def materiais(request):
     registros = Item.objects.order_by('nome')
     return render(request, 'gestao/lista.html', {'titulo': 'Materiais e Ferramentas', 'registros': registros, 'tipo': 'material'})
 
 
 @login_required(login_url='login')
+@permission_required('gestao.add_item', raise_exception=True)
 def item_create(request):
     if request.method == 'POST':
         form = ItemForm(request.POST)
@@ -435,6 +472,7 @@ def item_create(request):
 
 
 @login_required(login_url='login')
+@permission_required('gestao.change_item', raise_exception=True)
 def item_update(request, pk):
     obj = get_object_or_404(Item, pk=pk)
     if request.method == 'POST':
@@ -449,12 +487,14 @@ def item_update(request, pk):
 
 @login_required(login_url='login')
 @require_POST
+@permission_required('gestao.delete_item', raise_exception=True)
 def item_delete(request, pk):
     Item.objects.filter(pk=pk).delete()
     return redirect('materiais')
 
 
 @login_required(login_url='login')
+@permission_required('gestao.view_item', raise_exception=True)
 def export_itens(request):
     queryset = Item.objects.all().order_by('nome')
     if request.GET.get('format') == 'pdf':
@@ -478,12 +518,14 @@ def export_itens(request):
 
 
 @login_required(login_url='login')
+@permission_required('gestao.view_ponto', raise_exception=True)
 def pontos(request):
     registros = Ponto.objects.select_related('funcionario').order_by('-data')
     return render(request, 'gestao/lista.html', {'titulo': 'Ponto dos Funcionários', 'registros': registros, 'tipo': 'ponto'})
 
 
 @login_required(login_url='login')
+@permission_required('gestao.add_ponto', raise_exception=True)
 def ponto_create(request):
     if request.method == 'POST':
         form = PontoForm(request.POST)
@@ -496,6 +538,7 @@ def ponto_create(request):
 
 
 @login_required(login_url='login')
+@permission_required('gestao.change_ponto', raise_exception=True)
 def ponto_update(request, pk):
     obj = get_object_or_404(Ponto, pk=pk)
     if request.method == 'POST':
@@ -510,6 +553,7 @@ def ponto_update(request, pk):
 
 @login_required(login_url='login')
 @require_POST
+@permission_required('gestao.delete_ponto', raise_exception=True)
 def ponto_delete(request, pk):
     Ponto.objects.filter(pk=pk).delete()
     return redirect('pontos')

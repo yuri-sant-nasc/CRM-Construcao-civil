@@ -13,14 +13,14 @@
             <h1>WPN</h1>
             <nav>
                 <a href="{% url 'dashboard' %}" class="active">Dashboard</a>
-                <a href="{% url 'funcionarios' %}">Funcionários</a>
-                <a href="{% url 'clientes' %}">Clientes</a>
-                <a href="{% url 'obras' %}">Obras</a>
-                <a href="{% url 'faltas' %}">Faltas</a>
-                <a href="{% url 'financeiro' %}">Financeiro</a>
-                <a href="{% url 'orcamentos' %}">Orçamentos</a>
-                <a href="{% url 'materiais' %}">Materiais</a>
-                <a href="{% url 'pontos' %}">Ponto</a>
+                {% if perms.gestao.view_funcionario %}<a href="{% url 'funcionarios' %}">Funcionários</a>{% endif %}
+                {% if perms.gestao.view_cliente %}<a href="{% url 'clientes' %}">Clientes</a>{% endif %}
+                {% if perms.gestao.view_obra %}<a href="{% url 'obras' %}">Obras</a>{% endif %}
+                {% if perms.gestao.view_falta %}<a href="{% url 'faltas' %}">Faltas</a>{% endif %}
+                {% if perms.gestao.view_transacao %}<a href="{% url 'financeiro' %}">Financeiro</a>{% endif %}
+                {% if perms.gestao.view_orcamento %}<a href="{% url 'orcamentos' %}">Orçamentos</a>{% endif %}
+                {% if perms.gestao.view_item %}<a href="{% url 'materiais' %}">Materiais</a>{% endif %}
+                {% if perms.gestao.view_ponto %}<a href="{% url 'pontos' %}">Ponto</a>{% endif %}
                 <form method="post" action="{% url 'logout' %}" class="logout-form">{% csrf_token %}<button type="submit">Sair</button></form>
             </nav>
         </aside>

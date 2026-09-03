@@ -13,14 +13,14 @@
             <h1>WPN</h1>
             <nav>
                 <a href="{% url 'dashboard' %}">Dashboard</a>
-                <a href="{% url 'funcionarios' %}" {% if tipo == 'funcionario' %}class="active"{% endif %}>Funcionários</a>
-                <a href="{% url 'clientes' %}" {% if tipo == 'cliente' %}class="active"{% endif %}>Clientes</a>
-                <a href="{% url 'obras' %}" {% if tipo == 'obra' %}class="active"{% endif %}>Obras</a>
-                <a href="{% url 'faltas' %}" {% if tipo == 'falta' %}class="active"{% endif %}>Faltas</a>
-                <a href="{% url 'financeiro' %}" {% if tipo == 'financeiro' %}class="active"{% endif %}>Financeiro</a>
-                <a href="{% url 'orcamentos' %}" {% if tipo == 'orcamento' %}class="active"{% endif %}>Orçamentos</a>
-                <a href="{% url 'materiais' %}" {% if tipo == 'material' %}class="active"{% endif %}>Materiais</a>
-                <a href="{% url 'pontos' %}" {% if tipo == 'ponto' %}class="active"{% endif %}>Ponto</a>
+                {% if perms.gestao.view_funcionario %}<a href="{% url 'funcionarios' %}" {% if tipo == 'funcionario' %}class="active"{% endif %}>Funcionários</a>{% endif %}
+                {% if perms.gestao.view_cliente %}<a href="{% url 'clientes' %}" {% if tipo == 'cliente' %}class="active"{% endif %}>Clientes</a>{% endif %}
+                {% if perms.gestao.view_obra %}<a href="{% url 'obras' %}" {% if tipo == 'obra' %}class="active"{% endif %}>Obras</a>{% endif %}
+                {% if perms.gestao.view_falta %}<a href="{% url 'faltas' %}" {% if tipo == 'falta' %}class="active"{% endif %}>Faltas</a>{% endif %}
+                {% if perms.gestao.view_transacao %}<a href="{% url 'financeiro' %}" {% if tipo == 'financeiro' %}class="active"{% endif %}>Financeiro</a>{% endif %}
+                {% if perms.gestao.view_orcamento %}<a href="{% url 'orcamentos' %}" {% if tipo == 'orcamento' %}class="active"{% endif %}>Orçamentos</a>{% endif %}
+                {% if perms.gestao.view_item %}<a href="{% url 'materiais' %}" {% if tipo == 'material' %}class="active"{% endif %}>Materiais</a>{% endif %}
+                {% if perms.gestao.view_ponto %}<a href="{% url 'pontos' %}" {% if tipo == 'ponto' %}class="active"{% endif %}>Ponto</a>{% endif %}
                 <form method="post" action="{% url 'logout' %}" class="logout-form">{% csrf_token %}<button type="submit">Sair</button></form>
             </nav>
         </aside>

@@ -37,6 +37,7 @@ Este documento registra os controles tecnicos implementados no WPN. Ele nao repr
 - Aplicar atualizacoes e analise de vulnerabilidades.
 - Separar ambientes de desenvolvimento, teste e producao.
 - Usar PostgreSQL em producao, HTTPS e gerenciamento de segredos.
+- Usar Redis compartilhado em producao para o controle de tentativas de login.
 - Documentar continuidade, recuperacao e resposta a incidentes.
 - Treinar usuarios e revisar acessos, especialmente administradores.
 - Manter evidencias de testes, backups, revisoes e aprovacoes.
@@ -54,3 +55,13 @@ DJANGO_EMAIL_PORT=587
 DJANGO_EMAIL_USER=mailer@exemplo.com
 DJANGO_EMAIL_PASSWORD=<senha-do-servico-de-email>
 ```
+
+## Perfis de acesso
+
+As telas usam as permissoes padrao do Django por modelo. Crie grupos no admin e atribua somente o necessario:
+
+- `Leitura`: permissoes `view_*` dos modulos permitidos.
+- `Operacao`: `view_*`, `add_*` e `change_*` dos modulos permitidos.
+- `Administracao`: permissoes completas apenas para usuarios responsaveis.
+
+O dashboard exige `view_transacao` porque exibe dados financeiros agregados. As importacoes exigem a permissao `add_*` correspondente ao recurso.

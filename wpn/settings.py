@@ -141,6 +141,15 @@ CSRF_COOKIE_SAMESITE = 'Lax'
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = 'same-origin'
 
+REDIS_URL = os.environ.get('REDIS_URL')
+if REDIS_URL:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': REDIS_URL,
+        },
+    }
+
 # Security settings for Session timeout
 SESSION_EXPIRE_AT_BROWSER = True
 SESSION_COOKIE_AGE = 1800  # 30 minutes

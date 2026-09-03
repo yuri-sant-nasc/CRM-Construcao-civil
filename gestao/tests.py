@@ -1,6 +1,7 @@
 from datetime import date, datetime
 
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Permission
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase
 from django.utils import timezone
@@ -209,3 +210,31 @@ class WpnModelTests(TestCase):
 
         self.assertEqual(response.status_code, 302)
         self.assertTrue(AuditLog.objects.filter(user=user, path='/logout/', action='POST').exists())
+
+
+class SecurityTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(username='viewer', password='senha123')
+        self.client.force_login(self.user)
+
+    def test_authenticated_user_without_permission_is_forbidden(self):
+        response = self.client.get('/clientes/')
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_user_with_view_permission_can_access_clientes(self):
+        permission = Permission.objects.get(codename='view_cliente')
+        self.user.user_permissions.add(permission)
+
+        response = self.client.get('/clientes/')
+
+        self.assertEqual(response.status_code, 200)
+
+    def test_import_requires_permission_for_selected_resource(self):
+        permission = Permission.objects.get(codename='add_item')
+        self.user.user_permissions.add(permission)
+
+        response = self.client.get('/materiais/importar/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.client.get('/financeiro/importar/').status_code, 403)
