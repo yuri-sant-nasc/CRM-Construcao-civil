@@ -85,6 +85,14 @@ Exportações estão disponíveis nos formatos **CSV** e **PDF**, com sanitizaç
 
 ## Segurança (SecOps)
 
+## Workflows do GitHub
+
+O repositório executa automaticamente:
+
+- CI em push e pull request para `main` e `master`, com `check`, migrações, testes, `pip-audit` e validação do Docker Compose.
+- CodeQL em push, pull request e semanalmente para análise estática de Python.
+- Dependabot semanal para dependências Python e mensal para GitHub Actions.
+
 Este projeto passou por auditorias de segurança e possui os seguintes controles ativados:
 - Timeout absoluto de sessões inativas.
 - Proteção contra IP Spoofing na tabela de Auditoria.
