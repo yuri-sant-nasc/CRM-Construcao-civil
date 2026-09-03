@@ -1,7 +1,7 @@
 # WPN Gestão de Obras
 
 Sistema web para gestão de construtora, desenvolvido com Django.
-O aplicativo reúne e centraliza o gerenciamento de obras, clientes, funcionários, controles financeiros, orçamentos, estoque de materiais e controle de ponto.
+O aplicativo reúne e centraliza o gerenciamento de obras, clientes, oportunidades comerciais, funcionários, controles financeiros, orçamentos, estoque de materiais e controle de ponto.
 
 ## Tecnologias
 
@@ -66,6 +66,14 @@ docker compose up --build -d
 O servidor estará acessível em `http://127.0.0.1:8000/`.
 
 ---
+
+## Pipeline comercial
+
+O módulo **Oportunidades** organiza o ciclo comercial antes da obra: novo contato, visita técnica, orçamento, negociação, aprovado ou perdido. Cada oportunidade fica vinculada a um cliente e registra origem, valor estimado, previsão de fechamento e motivo da perda.
+
+O acesso é controlado pelas permissões padrão do Django (`view_oportunidade`, `add_oportunidade`, `change_oportunidade` e `delete_oportunidade`). Configure grupos e usuários pelo `/admin/`. O relacionamento entre clientes, oportunidades, orçamentos e obras está documentado em [docs/DIAGRAMA.md](docs/DIAGRAMA.md).
+
+As próximas entregas estão organizadas, em ordem de prioridade, em [docs/ROADMAP.md](docs/ROADMAP.md). Cada tarefa define seus testes obrigatórios e a atualização de diagrama necessária.
 
 ## Importação e Exportação (CSV e PDF)
 

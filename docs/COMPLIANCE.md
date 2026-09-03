@@ -15,6 +15,7 @@ Este documento registra os controles tecnicos implementados no WPN. Ele nao repr
 - Trilha de auditoria de operacoes mutaveis com usuario, rota, IP, status e horario.
 - Senhas delegadas ao sistema de autenticacao do Django, com validadores ativos.
 - Dados de obras, clientes, financeiro e materiais separados por relacionamentos explicitos.
+- Pipeline comercial com oportunidades vinculadas a clientes e permissoes por modelo.
 
 ## Checklist LGPD operacional
 

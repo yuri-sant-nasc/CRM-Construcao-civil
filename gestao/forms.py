@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm
 
-from .models import Cliente, Falta, Funcionario, Item, Obra, Orcamento, Ponto, Transacao
+from .models import Cliente, DiarioObra, Falta, FotoObra, Funcionario, Item, ItemOrcamento, Obra, Ocorrencia, Oportunidade, Orcamento, Ponto, Transacao
 
 
 class LoginForm(AuthenticationForm):
@@ -49,19 +49,81 @@ class ClienteForm(forms.ModelForm):
         }
 
 
+class OportunidadeForm(forms.ModelForm):
+    class Meta:
+        model = Oportunidade
+        fields = [
+            'cliente', 'responsavel', 'titulo', 'etapa', 'origem', 'valor_estimado',
+            'probabilidade_fechamento', 'data_previsao_fechamento', 'data_proximo_contato',
+            'observacoes', 'motivo_perda',
+        ]
+        widgets = {
+            'cliente': forms.Select(attrs={'class': 'form-control'}),
+            'responsavel': forms.Select(attrs={'class': 'form-control'}),
+            'titulo': forms.TextInput(attrs={'class': 'form-control'}),
+            'etapa': forms.Select(attrs={'class': 'form-control'}),
+            'origem': forms.Select(attrs={'class': 'form-control'}),
+            'valor_estimado': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
+            'probabilidade_fechamento': forms.NumberInput(attrs={'class': 'form-control', 'min': 0, 'max': 100}),
+            'data_previsao_fechamento': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'data_proximo_contato': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'observacoes': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
+            'motivo_perda': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        probability = cleaned_data.get('probabilidade_fechamento')
+        if probability is not None and probability > 100:
+            self.add_error('probabilidade_fechamento', 'A probabilidade deve estar entre 0 e 100.')
+        if cleaned_data.get('etapa') == 'perdido' and not cleaned_data.get('motivo_perda'):
+            self.add_error('motivo_perda', 'Informe o motivo da perda.')
+        return cleaned_data
+
+
 class ObraForm(forms.ModelForm):
     class Meta:
         model = Obra
-        fields = ['nome', 'cliente', 'endereco', 'data_inicio', 'data_previsao', 'status', 'observacoes']
+        fields = ['nome', 'cliente', 'responsavel', 'equipe', 'endereco', 'data_inicio', 'data_previsao', 'status', 'percentual_concluido', 'observacoes']
         widgets = {
             'cliente': forms.Select(attrs={'class': 'form-control'}),
+            'responsavel': forms.Select(attrs={'class': 'form-control'}),
+            'equipe': forms.SelectMultiple(attrs={'class': 'form-control'}),
             'data_inicio': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'data_previsao': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'status': forms.Select(attrs={'class': 'form-control'}),
+            'percentual_concluido': forms.NumberInput(attrs={'class': 'form-control', 'min': 0, 'max': 100}),
             'observacoes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'nome': forms.TextInput(attrs={'class': 'form-control'}),
             'endereco': forms.TextInput(attrs={'class': 'form-control'}),
         }
+
+    def clean_percentual_concluido(self):
+        percentual = self.cleaned_data['percentual_concluido']
+        if percentual > 100:
+            raise forms.ValidationError('O percentual deve estar entre 0 e 100.')
+        return percentual
+
+
+class DiarioObraForm(forms.ModelForm):
+    class Meta:
+        model = DiarioObra
+        fields = ['obra', 'data', 'resumo']
+        widgets = {'obra': forms.Select(attrs={'class': 'form-control'}), 'data': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}), 'resumo': forms.Textarea(attrs={'class': 'form-control', 'rows': 5})}
+
+
+class OcorrenciaForm(forms.ModelForm):
+    class Meta:
+        model = Ocorrencia
+        fields = ['obra', 'titulo', 'descricao', 'status']
+        widgets = {'obra': forms.Select(attrs={'class': 'form-control'}), 'titulo': forms.TextInput(attrs={'class': 'form-control'}), 'descricao': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}), 'status': forms.Select(attrs={'class': 'form-control'})}
+
+
+class FotoObraForm(forms.ModelForm):
+    class Meta:
+        model = FotoObra
+        fields = ['obra', 'arquivo', 'legenda']
+        widgets = {'obra': forms.Select(attrs={'class': 'form-control'}), 'arquivo': forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': 'image/jpeg,image/png,image/webp'}), 'legenda': forms.TextInput(attrs={'class': 'form-control'})}
 
 
 class FaltaForm(forms.ModelForm):
@@ -103,6 +165,24 @@ class OrcamentoForm(forms.ModelForm):
             'valor': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
             'obra': forms.Select(attrs={'class': 'form-control'}),
         }
+
+
+class ItemOrcamentoForm(forms.ModelForm):
+    class Meta:
+        model = ItemOrcamento
+        fields = ['categoria', 'descricao', 'quantidade', 'custo_unitario', 'margem_percentual']
+        widgets = {
+            'categoria': forms.Select(attrs={'class': 'form-control'}),
+            'descricao': forms.TextInput(attrs={'class': 'form-control'}),
+            'quantidade': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001', 'min': '0.001'}),
+            'custo_unitario': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
+            'margem_percentual': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
+        }
+
+
+class ReajusteOrcamentoForm(forms.Form):
+    percentual = forms.DecimalField(min_value=0.01, max_value=1000, max_digits=7, decimal_places=2, widget=forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0.01'}))
+    motivo = forms.CharField(max_length=250, widget=forms.TextInput(attrs={'class': 'form-control'}))
 
 
 class ItemForm(forms.ModelForm):

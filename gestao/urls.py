@@ -17,10 +17,18 @@ urlpatterns = [
     path('clientes/<int:pk>/editar/', views.cliente_update, name='cliente_update'),
     path('clientes/<int:pk>/excluir/', views.cliente_delete, name='cliente_delete'),
 
+    path('oportunidades/', views.oportunidades, name='oportunidades'),
+    path('oportunidades/nova/', views.oportunidade_create, name='oportunidade_create'),
+    path('oportunidades/<int:pk>/editar/', views.oportunidade_update, name='oportunidade_update'),
+    path('oportunidades/<int:pk>/excluir/', views.oportunidade_delete, name='oportunidade_delete'),
+    path('oportunidades/<int:pk>/converter-orcamento/', views.oportunidade_convert_orcamento, name='oportunidade_convert_orcamento'),
+
     path('obras/', views.obras, name='obras'),
     path('obras/novo/', views.obra_create, name='obra_create'),
     path('obras/<int:pk>/editar/', views.obra_update, name='obra_update'),
+    path('obras/<int:pk>/operacao/', views.obra_operacao, name='obra_operacao'),
     path('obras/<int:pk>/excluir/', views.obra_delete, name='obra_delete'),
+    path('fotos-obras/<int:pk>/download/', views.foto_obra_download, name='foto_obra_download'),
 
     path('faltas/', views.faltas, name='faltas'),
     path('faltas/novo/', views.falta_create, name='falta_create'),
@@ -35,6 +43,8 @@ urlpatterns = [
     path('financeiro/importar/', views.importacao_csv, {'tipo': 'financeiro'}, name='import_financeiro'),
 
     path('orcamentos/', views.orcamentos, name='orcamentos'),
+    path('orcamentos/<int:pk>/', views.orcamento_detail, name='orcamento_detail'),
+    path('orcamentos/<int:pk>/proposta.pdf', views.export_orcamento_pdf, name='export_orcamento_pdf'),
     path('orcamentos/novo/', views.orcamento_create, name='orcamento_create'),
     path('orcamentos/<int:pk>/editar/', views.orcamento_update, name='orcamento_update'),
     path('orcamentos/<int:pk>/excluir/', views.orcamento_delete, name='orcamento_delete'),

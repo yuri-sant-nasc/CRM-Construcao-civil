@@ -1,0 +1,20 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WPN - Composição do orçamento</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+</head>
+<body>
+    <div class="layout"><aside class="sidebar"><h1>WPN</h1><nav>
+        <a href="{% url 'dashboard' %}">Dashboard</a><a href="{% url 'orcamentos' %}" class="active">Orçamentos</a><a href="{% url 'obras' %}">Obras</a>
+        <form method="post" action="{% url 'logout' %}" class="logout-form">{% csrf_token %}<button type="submit">Sair</button></form>
+    </nav></aside>
+    <main class="content"><header class="topbar"><div><p class="eyebrow">Composição de orçamento</p><h2>{{ orcamento.descricao }}</h2><p class="page-subtitle">{{ orcamento.cliente }} · {{ orcamento.data_orcamento }}</p></div><a class="secondary-btn" href="{% url 'export_orcamento_pdf' orcamento.pk %}">Gerar proposta PDF</a></header>
+        <section class="import-grid"><div class="form-box"><h3>Adicionar item</h3><form method="post">{% csrf_token %}{{ item_form.as_p }}{% if perms.gestao.add_itemorcamento %}<button type="submit" class="primary-btn">Adicionar item</button>{% endif %}</form></div><div class="form-box"><h3>Registrar reajuste</h3><form method="post">{% csrf_token %}<input type="hidden" name="action" value="reajuste">{{ reajuste_form.as_p }}{% if perms.gestao.change_orcamento %}<button type="submit" class="primary-btn">Criar versão</button>{% endif %}</form></div></section>
+        <section class="table-wrap"><table><thead><tr><th>Categoria</th><th>Descrição</th><th>Quantidade</th><th>Custo unitário</th><th>Margem</th><th>Total</th></tr></thead><tbody>
+            {% for item in itens %}<tr><td>{{ item.get_categoria_display }}</td><td>{{ item.descricao }}</td><td>{{ item.quantidade }}</td><td>R$ {{ item.custo_unitario }}</td><td>{{ item.margem_percentual }}%</td><td>R$ {{ item.total|floatformat:2 }}</td></tr>{% empty %}<tr><td colspan="6">Nenhum item adicionado.</td></tr>{% endfor %}
+        </tbody></table></section><section class="summary-boxes"><div class="summary-box"><span>Total da composição</span><strong>R$ {{ orcamento.total_composicao|floatformat:2 }}</strong></div><div class="summary-box"><span>Valor atual</span><strong>R$ {{ orcamento.valor }}</strong></div></section><section class="panel"><h3>Histórico de versões</h3>{% for versao in versoes %}<p><strong>Versão {{ versao.numero }}</strong> · R$ {{ versao.valor_anterior }} para R$ {{ versao.valor_novo }} · {{ versao.reajuste_percentual }}% · {{ versao.motivo }} · {{ versao.criado_em }}</p>{% empty %}<p class="muted-note">Nenhum reajuste registrado.</p>{% endfor %}</section>
+    </main></div>
+</body></html>

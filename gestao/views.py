@@ -1,29 +1,38 @@
+from decimal import Decimal
+
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required, permission_required
 from django.core.exceptions import PermissionDenied
 from django.views.decorators.http import require_POST
 from django.db.models import F, Sum
-from django.http import HttpResponse
+from django.http import FileResponse, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.db import transaction
 from django.core.cache import cache
 from django.utils.dateparse import parse_date
 
 from .exports import export_csv
 from .forms import (
     ClienteForm,
+    DiarioObraForm,
     FaltaForm,
+    FotoObraForm,
     FuncionarioForm,
     ItemForm,
     LoginForm,
     ImportacaoCSVForm,
+    ItemOrcamentoForm,
+    ReajusteOrcamentoForm,
     ObraForm,
+    OportunidadeForm,
+    OcorrenciaForm,
     OrcamentoForm,
     PontoForm,
     TransacaoForm,
 )
-from .models import Cliente, Falta, Funcionario, Item, Obra, Orcamento, Ponto, Transacao
+from .models import Cliente, Falta, FotoObra, Funcionario, HistoricoOportunidade, Item, ItemOrcamento, Obra, Oportunidade, Orcamento, Ponto, Transacao, VersaoOrcamento
 from .importers import IMPORT_CONFIG, import_csv
 from .pdf_utils import build_pdf_response
 
@@ -199,7 +208,19 @@ def clientes(request):
 @permission_required('gestao.view_obra', raise_exception=True)
 def obras(request):
     registros = Obra.objects.select_related('cliente').all()
-    return render(request, 'gestao/lista.html', {'titulo': 'Obras', 'registros': registros, 'tipo': 'obra'})
+    status = request.GET.get('status')
+    responsavel = request.GET.get('responsavel')
+    if status in dict(Obra.STATUS_CHOICES):
+        registros = registros.filter(status=status)
+    if responsavel and responsavel.isdigit():
+        registros = registros.filter(responsavel_id=responsavel)
+    return render(request, 'gestao/lista.html', {
+        'titulo': 'Obras', 'registros': registros, 'tipo': 'obra',
+        'status_obra_choices': Obra.STATUS_CHOICES,
+        'status_obra_atual': status or '',
+        'responsaveis_obra': Funcionario.objects.filter(ativo=True).order_by('nome_completo'),
+        'responsavel_obra_atual': responsavel or '',
+    })
 
 
 @login_required(login_url='login')
@@ -221,6 +242,59 @@ def obra_update(request, pk):
         form.save()
         return redirect('obras')
     return render(request, 'gestao/formulario.html', {'form': form, 'titulo': 'Editar Obra'})
+
+
+@login_required(login_url='login')
+@permission_required('gestao.view_obra', raise_exception=True)
+def obra_operacao(request, pk):
+    obra = get_object_or_404(Obra.objects.select_related('cliente', 'responsavel'), pk=pk)
+    diario_form = DiarioObraForm(prefix='diario')
+    ocorrencia_form = OcorrenciaForm(prefix='ocorrencia')
+    foto_form = FotoObraForm(prefix='foto')
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'diario':
+            diario_form = DiarioObraForm(request.POST, prefix='diario')
+            if diario_form.is_valid() and diario_form.cleaned_data['obra'] == obra:
+                diario = diario_form.save(commit=False)
+                diario.autor = request.user
+                diario.save()
+                messages.success(request, 'Diário de obra registrado.')
+                return redirect('obra_operacao', pk=obra.pk)
+        elif action == 'ocorrencia':
+            ocorrencia_form = OcorrenciaForm(request.POST, prefix='ocorrencia')
+            if ocorrencia_form.is_valid() and ocorrencia_form.cleaned_data['obra'] == obra:
+                ocorrencia = ocorrencia_form.save(commit=False)
+                ocorrencia.autor = request.user
+                ocorrencia.save()
+                messages.success(request, 'Ocorrência registrada.')
+                return redirect('obra_operacao', pk=obra.pk)
+        elif action == 'foto':
+            foto_form = FotoObraForm(request.POST, request.FILES, prefix='foto')
+            if foto_form.is_valid() and foto_form.cleaned_data['obra'] == obra:
+                foto = foto_form.save(commit=False)
+                foto.autor = request.user
+                foto.save()
+                messages.success(request, 'Foto enviada.')
+                return redirect('obra_operacao', pk=obra.pk)
+    return render(request, 'gestao/obra_operacao.html', {
+        'obra': obra,
+        'diarios': obra.diarios.select_related('autor').all(),
+        'ocorrencias': obra.ocorrencias.select_related('autor').all(),
+        'fotos': obra.fotos.select_related('autor').all(),
+        'diario_form': diario_form,
+        'ocorrencia_form': ocorrencia_form,
+        'foto_form': foto_form,
+    })
+
+
+@login_required(login_url='login')
+@permission_required('gestao.view_fotoobra', raise_exception=True)
+def foto_obra_download(request, pk):
+    foto = get_object_or_404(FotoObra, pk=pk)
+    if not foto.arquivo:
+        return redirect('obra_operacao', pk=foto.obra_id)
+    return FileResponse(foto.arquivo.open('rb'), as_attachment=True, filename=foto.arquivo.name.rsplit('/', 1)[-1])
 
 
 @login_required(login_url='login')
@@ -266,6 +340,86 @@ def cliente_delete(request, pk):
     obj.ativo = False
     obj.save()
     return redirect('clientes')
+
+
+@login_required(login_url='login')
+@permission_required('gestao.view_oportunidade', raise_exception=True)
+def oportunidades(request):
+    registros = Oportunidade.objects.select_related('cliente').order_by('-atualizado_em')
+    etapa = request.GET.get('etapa')
+    if etapa in dict(Oportunidade.ETAPA_CHOICES):
+        registros = registros.filter(etapa=etapa)
+    return render(request, 'gestao/lista.html', {
+        'titulo': 'Oportunidades comerciais',
+        'registros': registros,
+        'tipo': 'oportunidade',
+        'etapas_oportunidade': Oportunidade.ETAPA_CHOICES,
+        'etapa_atual': etapa or '',
+    })
+
+
+@login_required(login_url='login')
+@permission_required('gestao.add_oportunidade', raise_exception=True)
+def oportunidade_create(request):
+    form = OportunidadeForm(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        oportunidade = form.save()
+        HistoricoOportunidade.objects.create(oportunidade=oportunidade, etapa_nova=oportunidade.etapa, alterado_por=request.user)
+        return redirect('oportunidades')
+    return render(request, 'gestao/formulario.html', {'form': form, 'titulo': 'Nova oportunidade'})
+
+
+@login_required(login_url='login')
+@permission_required('gestao.change_oportunidade', raise_exception=True)
+def oportunidade_update(request, pk):
+    obj = get_object_or_404(Oportunidade, pk=pk)
+    etapa_anterior = obj.etapa
+    form = OportunidadeForm(request.POST or None, instance=obj)
+    if request.method == 'POST' and form.is_valid():
+        etapa_nova = form.cleaned_data['etapa']
+        oportunidade = form.save()
+        if etapa_anterior != etapa_nova:
+            HistoricoOportunidade.objects.create(
+                oportunidade=oportunidade,
+                etapa_anterior=etapa_anterior,
+                etapa_nova=etapa_nova,
+                alterado_por=request.user,
+            )
+        return redirect('oportunidades')
+    return render(request, 'gestao/formulario.html', {'form': form, 'titulo': 'Editar oportunidade'})
+
+
+@login_required(login_url='login')
+@require_POST
+@permission_required('gestao.delete_oportunidade', raise_exception=True)
+def oportunidade_delete(request, pk):
+    Oportunidade.objects.filter(pk=pk).delete()
+    return redirect('oportunidades')
+
+
+@login_required(login_url='login')
+@require_POST
+@permission_required('gestao.change_oportunidade', raise_exception=True)
+def oportunidade_convert_orcamento(request, pk):
+    if not request.user.has_perm('gestao.add_orcamento'):
+        raise PermissionDenied
+    oportunidade = get_object_or_404(Oportunidade.objects.select_related('cliente'), pk=pk)
+    if oportunidade.etapa != 'aprovado':
+        messages.error(request, 'A oportunidade precisa estar aprovada para virar orçamento.')
+        return redirect('oportunidades')
+    if hasattr(oportunidade, 'orcamento_convertido'):
+        messages.info(request, 'Esta oportunidade já foi convertida em orçamento.')
+        return redirect('oportunidades')
+    with transaction.atomic():
+        orcamento = Orcamento.objects.create(
+            cliente=oportunidade.cliente,
+            data_orcamento=timezone.localdate(),
+            descricao=oportunidade.titulo,
+            valor=oportunidade.valor_estimado or 0,
+            oportunidade=oportunidade,
+        )
+    messages.success(request, f'Orçamento {orcamento.pk} criado com sucesso.')
+    return redirect('oportunidades')
 
 
 @login_required(login_url='login')
@@ -407,6 +561,68 @@ def export_financeiro(request):
 def orcamentos(request):
     registros = Orcamento.objects.select_related('cliente').order_by('-data_orcamento')
     return render(request, 'gestao/lista.html', {'titulo': 'Orçamentos', 'registros': registros, 'tipo': 'orcamento'})
+
+
+@login_required(login_url='login')
+@permission_required('gestao.view_orcamento', raise_exception=True)
+def orcamento_detail(request, pk):
+    orcamento = get_object_or_404(Orcamento.objects.select_related('cliente', 'obra'), pk=pk)
+    item_form = ItemOrcamentoForm()
+    reajuste_form = ReajusteOrcamentoForm()
+    if request.method == 'POST':
+        if request.POST.get('action') == 'reajuste':
+            if not request.user.has_perm('gestao.change_orcamento'):
+                raise PermissionDenied
+            reajuste_form = ReajusteOrcamentoForm(request.POST)
+            if reajuste_form.is_valid():
+                percentual = reajuste_form.cleaned_data['percentual']
+                valor_anterior = orcamento.valor
+                valor_novo = (valor_anterior * (Decimal('100') + percentual) / Decimal('100')).quantize(Decimal('0.01'))
+                itens_snapshot = [
+                    {'categoria': item.categoria, 'descricao': item.descricao, 'quantidade': str(item.quantidade), 'custo_unitario': str(item.custo_unitario), 'margem_percentual': str(item.margem_percentual)}
+                    for item in orcamento.itens.all()
+                ]
+                with transaction.atomic():
+                    orcamento.valor = valor_novo
+                    orcamento.save(update_fields=['valor'])
+                    VersaoOrcamento.objects.create(
+                        orcamento=orcamento,
+                        numero=orcamento.versoes.count() + 1,
+                        valor_anterior=valor_anterior,
+                        valor_novo=valor_novo,
+                        reajuste_percentual=percentual,
+                        motivo=reajuste_form.cleaned_data['motivo'],
+                        itens_snapshot=itens_snapshot,
+                        criado_por=request.user,
+                    )
+                    messages.success(request, 'Reajuste registrado e nova versão criada.')
+                    return redirect('orcamento_detail', pk=orcamento.pk)
+        elif request.user.has_perm('gestao.add_itemorcamento'):
+            item_form = ItemOrcamentoForm(request.POST)
+            if item_form.is_valid():
+                item = item_form.save(commit=False)
+                item.orcamento = orcamento
+                item.save()
+                messages.success(request, 'Item adicionado ao orçamento.')
+                return redirect('orcamento_detail', pk=orcamento.pk)
+        else:
+            raise PermissionDenied
+    return render(request, 'gestao/orcamento_detail.html', {'orcamento': orcamento, 'itens': orcamento.itens.all(), 'versoes': orcamento.versoes.all(), 'item_form': item_form, 'reajuste_form': reajuste_form})
+
+
+@login_required(login_url='login')
+@permission_required('gestao.view_orcamento', raise_exception=True)
+def export_orcamento_pdf(request, pk):
+    orcamento = get_object_or_404(Orcamento.objects.select_related('cliente'), pk=pk)
+    rows = [
+        {'categoria': item.get_categoria_display(), 'descricao': item.descricao, 'quantidade': str(item.quantidade), 'total': f'R$ {item.total:.2f}'}
+        for item in orcamento.itens.all()
+    ]
+    rows.append({'categoria': '', 'descricao': 'Total da composição', 'quantidade': '', 'total': f'R$ {orcamento.total_composicao:.2f}'})
+    pdf = build_pdf_response(f'Proposta - {orcamento.cliente}', rows)
+    response = HttpResponse(pdf, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="orcamento-{orcamento.pk}.pdf"'
+    return response
 
 
 @login_required(login_url='login')

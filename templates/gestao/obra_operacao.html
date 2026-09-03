@@ -1,0 +1,68 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WPN - Operação da obra</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <h1>WPN</h1>
+            <nav>
+                <a href="{% url 'dashboard' %}">Dashboard</a>
+                <a href="{% url 'obras' %}" class="active">Obras</a>
+                <a href="{% url 'clientes' %}">Clientes</a>
+                <a href="{% url 'oportunidades' %}">Oportunidades</a>
+                <form method="post" action="{% url 'logout' %}" class="logout-form">{% csrf_token %}<button type="submit">Sair</button></form>
+            </nav>
+        </aside>
+        <main class="content">
+            <header class="topbar">
+                <div>
+                    <p class="eyebrow">Operação da obra</p>
+                    <h2>{{ obra.nome }}</h2>
+                    <p class="page-subtitle">{{ obra.cliente }} · {{ obra.percentual_concluido }}% concluído · {{ obra.get_status_display }}</p>
+                </div>
+            </header>
+            <section class="import-grid">
+                <div class="form-box">
+                    <h3>Novo registro no diário</h3>
+                    <form method="post">
+                        {% csrf_token %}<input type="hidden" name="action" value="diario">
+                        {{ diario_form.as_p }}<button type="submit" class="primary-btn">Registrar diário</button>
+                    </form>
+                </div>
+                <div class="form-box">
+                    <h3>Nova ocorrência</h3>
+                    <form method="post">
+                        {% csrf_token %}<input type="hidden" name="action" value="ocorrencia">
+                        {{ ocorrencia_form.as_p }}<button type="submit" class="primary-btn">Registrar ocorrência</button>
+                    </form>
+                </div>
+                <div class="form-box">
+                    <h3>Enviar foto</h3>
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}<input type="hidden" name="action" value="foto">
+                        {{ foto_form.as_p }}<button type="submit" class="primary-btn">Enviar foto</button>
+                    </form>
+                </div>
+            </section>
+            <section class="panel">
+                <h3>Diário recente</h3>
+                {% for diario in diarios %}<p><strong>{{ diario.data }}</strong> · {{ diario.resumo }} <span class="muted-note">({{ diario.autor|default:'sistema' }})</span></p>{% empty %}<p class="muted-note">Nenhum registro.</p>{% endfor %}
+            </section>
+            <section class="panel">
+                <h3>Ocorrências</h3>
+                {% for ocorrencia in ocorrencias %}<p><strong>{{ ocorrencia.titulo }}</strong> · {{ ocorrencia.get_status_display }} · {{ ocorrencia.descricao }}</p>{% empty %}<p class="muted-note">Nenhuma ocorrência.</p>{% endfor %}
+            </section>
+            <section class="panel">
+                <h3>Fotos</h3>
+                {% for foto in fotos %}<p>{{ foto.legenda|default:'Foto da obra' }} · <a href="{% url 'foto_obra_download' foto.pk %}">Baixar arquivo</a></p>{% empty %}<p class="muted-note">Nenhuma foto enviada.</p>{% endfor %}
+            </section>
+        </main>
+    </div>
+</body>
+</html>

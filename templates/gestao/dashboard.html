@@ -15,6 +15,7 @@
                 <a href="{% url 'dashboard' %}" class="active">Dashboard</a>
                 {% if perms.gestao.view_funcionario %}<a href="{% url 'funcionarios' %}">Funcionários</a>{% endif %}
                 {% if perms.gestao.view_cliente %}<a href="{% url 'clientes' %}">Clientes</a>{% endif %}
+                {% if perms.gestao.view_oportunidade %}<a href="{% url 'oportunidades' %}">Oportunidades</a>{% endif %}
                 {% if perms.gestao.view_obra %}<a href="{% url 'obras' %}">Obras</a>{% endif %}
                 {% if perms.gestao.view_falta %}<a href="{% url 'faltas' %}">Faltas</a>{% endif %}
                 {% if perms.gestao.view_transacao %}<a href="{% url 'financeiro' %}">Financeiro</a>{% endif %}

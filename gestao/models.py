@@ -1,4 +1,6 @@
 from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.core.validators import FileExtensionValidator
 from django.db import models
 from django.utils import timezone
 
@@ -64,6 +66,55 @@ class Cliente(PessoaBase):
         return self.nome_completo
 
 
+class Oportunidade(models.Model):
+    ETAPA_CHOICES = [
+        ('novo', 'Novo contato'),
+        ('visita', 'Visita técnica'),
+        ('orcamento', 'Orçamento'),
+        ('negociacao', 'Negociação'),
+        ('aprovado', 'Aprovado'),
+        ('perdido', 'Perdido'),
+    ]
+    ORIGEM_CHOICES = [
+        ('indicacao', 'Indicação'),
+        ('site', 'Site'),
+        ('redes_sociais', 'Redes sociais'),
+        ('prospeccao', 'Prospecção'),
+        ('outro', 'Outro'),
+    ]
+
+    cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, related_name='oportunidades')
+    titulo = models.CharField(max_length=200)
+    responsavel = models.ForeignKey(Funcionario, on_delete=models.SET_NULL, null=True, blank=True, related_name='oportunidades')
+    etapa = models.CharField(max_length=20, choices=ETAPA_CHOICES, default='novo')
+    origem = models.CharField(max_length=20, choices=ORIGEM_CHOICES, default='outro')
+    valor_estimado = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    probabilidade_fechamento = models.PositiveSmallIntegerField(default=0)
+    data_previsao_fechamento = models.DateField(null=True, blank=True)
+    data_proximo_contato = models.DateField(null=True, blank=True)
+    observacoes = models.TextField(blank=True)
+    motivo_perda = models.CharField(max_length=250, blank=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-atualizado_em', 'titulo']
+
+    def __str__(self):
+        return self.titulo
+
+
+class HistoricoOportunidade(models.Model):
+    oportunidade = models.ForeignKey(Oportunidade, on_delete=models.CASCADE, related_name='historico')
+    etapa_anterior = models.CharField(max_length=20, blank=True)
+    etapa_nova = models.CharField(max_length=20)
+    alterado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    alterado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-alterado_em']
+
+
 class Obra(models.Model):
     STATUS_CHOICES = [
         ('planejamento', 'Planejamento'),
@@ -74,10 +125,13 @@ class Obra(models.Model):
 
     nome = models.CharField(max_length=200)
     cliente = models.ForeignKey(Cliente, on_delete=models.PROTECT, related_name='obras')
+    responsavel = models.ForeignKey(Funcionario, on_delete=models.SET_NULL, null=True, blank=True, related_name='obras_responsavel')
+    equipe = models.ManyToManyField(Funcionario, blank=True, related_name='obras_equipe')
     endereco = models.CharField(max_length=250)
     data_inicio = models.DateField()
     data_previsao = models.DateField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='planejamento')
+    percentual_concluido = models.PositiveSmallIntegerField(default=0)
     observacoes = models.TextField(blank=True)
 
     class Meta:
@@ -85,6 +139,64 @@ class Obra(models.Model):
 
     def __str__(self):
         return self.nome
+
+    def clean(self):
+        if self.percentual_concluido > 100:
+            raise ValidationError({'percentual_concluido': 'O percentual deve estar entre 0 e 100.'})
+        if self.status == 'concluida' and self.percentual_concluido < 100:
+            raise ValidationError({'status': 'Uma obra concluída deve estar com 100% de conclusão.'})
+
+
+class DiarioObra(models.Model):
+    obra = models.ForeignKey(Obra, on_delete=models.CASCADE, related_name='diarios')
+    autor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    data = models.DateField(default=timezone.localdate)
+    resumo = models.TextField()
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-data', '-criado_em']
+
+    def __str__(self):
+        return f'{self.obra} - {self.data}'
+
+
+class Ocorrencia(models.Model):
+    STATUS_CHOICES = [
+        ('aberta', 'Aberta'),
+        ('em_tratamento', 'Em tratamento'),
+        ('resolvida', 'Resolvida'),
+    ]
+
+    obra = models.ForeignKey(Obra, on_delete=models.CASCADE, related_name='ocorrencias')
+    autor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    titulo = models.CharField(max_length=200)
+    descricao = models.TextField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='aberta')
+    criado_em = models.DateTimeField(auto_now_add=True)
+    resolvido_em = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-criado_em']
+
+    def __str__(self):
+        return self.titulo
+
+
+def validate_photo_size(upload):
+    if upload.size > 5 * 1024 * 1024:
+        raise ValidationError('A foto deve ter no máximo 5 MB.')
+
+
+class FotoObra(models.Model):
+    obra = models.ForeignKey(Obra, on_delete=models.CASCADE, related_name='fotos')
+    autor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    arquivo = models.FileField(
+        upload_to='obras/fotos/',
+        validators=[FileExtensionValidator(['jpg', 'jpeg', 'png', 'webp']), validate_photo_size],
+    )
+    legenda = models.CharField(max_length=200, blank=True)
+    enviada_em = models.DateTimeField(auto_now_add=True)
 
 
 class Falta(models.Model):
@@ -144,9 +256,65 @@ class Orcamento(models.Model):
     descricao = models.CharField(max_length=200)
     valor = models.DecimalField(max_digits=12, decimal_places=2)
     obra = models.ForeignKey(Obra, on_delete=models.SET_NULL, null=True, blank=True, related_name='orcamentos')
+    oportunidade = models.OneToOneField(Oportunidade, on_delete=models.SET_NULL, null=True, blank=True, related_name='orcamento_convertido')
 
     def __str__(self):
         return self.descricao
+
+    @property
+    def total_composicao(self):
+        return sum((item.total for item in self.itens.all()), 0)
+
+
+class ItemOrcamento(models.Model):
+    CATEGORIA_CHOICES = [
+        ('material', 'Material'),
+        ('mao_de_obra', 'Mão de obra'),
+        ('equipamento', 'Equipamento'),
+        ('servico', 'Serviço'),
+    ]
+
+    orcamento = models.ForeignKey(Orcamento, on_delete=models.CASCADE, related_name='itens')
+    categoria = models.CharField(max_length=20, choices=CATEGORIA_CHOICES)
+    descricao = models.CharField(max_length=200)
+    quantidade = models.DecimalField(max_digits=12, decimal_places=3)
+    custo_unitario = models.DecimalField(max_digits=12, decimal_places=2)
+    margem_percentual = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+
+    @property
+    def custo_total(self):
+        return self.quantidade * self.custo_unitario
+
+    @property
+    def total(self):
+        return self.custo_total * (1 + self.margem_percentual / 100)
+
+    def clean(self):
+        errors = {}
+        if self.quantidade <= 0:
+            errors['quantidade'] = 'A quantidade deve ser maior que zero.'
+        if self.custo_unitario < 0:
+            errors['custo_unitario'] = 'O custo unitário não pode ser negativo.'
+        if self.margem_percentual < 0:
+            errors['margem_percentual'] = 'A margem não pode ser negativa.'
+        if errors:
+            raise ValidationError(errors)
+
+
+class VersaoOrcamento(models.Model):
+    orcamento = models.ForeignKey(Orcamento, on_delete=models.CASCADE, related_name='versoes')
+    numero = models.PositiveIntegerField()
+    valor_anterior = models.DecimalField(max_digits=12, decimal_places=2)
+    valor_novo = models.DecimalField(max_digits=12, decimal_places=2)
+    reajuste_percentual = models.DecimalField(max_digits=7, decimal_places=2)
+    motivo = models.CharField(max_length=250)
+    itens_snapshot = models.JSONField(default=list)
+    criado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-numero']
+        constraints = [models.UniqueConstraint(fields=['orcamento', 'numero'], name='unique_orcamento_versao')]
 
 
 class Item(models.Model):
